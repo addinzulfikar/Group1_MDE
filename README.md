@@ -19,8 +19,7 @@ Sebelum memulai, pastikan Anda memiliki:
 2. **Git** ([Download](https://git-scm.com/))
 
 3. **Text Editor / IDE**
-   - VS Code (recommended)
-   - PHPStorm, Sublime, dll
+   - VS Code
 
 ### Verifikasi Instalasi Docker
 

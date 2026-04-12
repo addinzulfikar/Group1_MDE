@@ -1,229 +1,547 @@
-# Group1 MDE - Laravel Application
+# 🚀 Group1 MDE - Sistem Pengiriman Paket (Logistik)
 
-Aplikasi web berbasis Laravel 12 untuk proyek Model-Driven Engineering (MDE).
+Aplikasi web berbasis **Laravel 12** untuk proyek **Model-Driven Engineering (MDE)**.
+Sistem ini mensimulasikan operasional logistik end-to-end dengan modul warehouse, tracking, authentication, dan fleet management.
+
+> ⚠️ **PENTING**: Proyek ini **WAJIB** berjalan di dalam **Docker Container**.
+> Jangan jalankan `php artisan serve` langsung!
+
+---
 
 ## 📋 Persyaratan Sistem
 
-Sebelum memulai, pastikan teman Anda memiliki:
+Sebelum memulai, pastikan Anda memiliki:
 
-- **PHP** 8.2 atau lebih tinggi ([Download PHP](https://www.php.net/downloads))
-- **Composer** ([Download Composer](https://getcomposer.org/download/))
-- **Node.js** 18+ dan **NPM** ([Download Node.js](https://nodejs.org/))
-- **SQLite** (biasanya sudah built-in di PHP)
+1. **Docker Desktop** ([Download](https://www.docker.com/products/docker-desktop))
+   - Windows / Mac / Linux
+   - Versi terbaru recommended
 
-### Verifikasi Instalasi
+2. **Git** ([Download](https://git-scm.com/))
+
+3. **Text Editor / IDE**
+   - VS Code (recommended)
+   - PHPStorm, Sublime, dll
+
+### Verifikasi Instalasi Docker
 
 ```bash
-php --version
-composer --version
-node --version
-npm --version
+docker --version
+docker compose --version
+docker ps
 ```
 
-## 🚀 Instalasi & Setup (Langkah Demi Langkah)
+Output contoh:
+```
+Docker version 29.3.1, build c2be9cc
+Docker Compose version v5.1.1
+CONTAINER ID   IMAGE     COMMAND   CREATED   STATUS    PORTS     NAMES
+(kosong jika belum launch container)
+```
 
-### 1. Clone Repository
+---
+
+## 🎯 Quick Start (5 Menit)
+
+Untuk developer yang baru pertama kali:
+
+```bash
+# 1. Clone repository
+git clone https://github.com/your-username/Group1_MDE.git
+cd Group1_MDE
+
+# 2. Copy environment file
+cp .env.example .env
+
+# 3. Start Docker containers
+./vendor/bin/sail up -d
+
+# 4. Setup database
+./vendor/bin/sail artisan migrate
+./vendor/bin/sail artisan db:seed
+
+# 5. Verifikasi
+./vendor/bin/sail tinker
+# Di dalam tinker:
+DB::table('users')->count()
+exit()
+
+# Aplikasi ready!
+# Akses: http://localhost
+```
+
+---
+
+## 🐳 Instalasi & Setup Lengkap (Step by Step)
+
+### Step 1: Clone Repository
 
 ```bash
 git clone https://github.com/your-username/Group1_MDE.git
 cd Group1_MDE
 ```
 
-### 2. Install Dependency PHP
-
+**Verifikasi struktur folder:**
 ```bash
-composer install
+ls -la
+# Harus ada: docker-compose.yaml, Dockerfile, .env.example, vendor/
 ```
 
-### 3. Konfigurasi Environment
+### Step 2: Copy Environment File
 
 ```bash
-# Copy file .env dari template
 cp .env.example .env
 
 # Atau di Windows:
 copy .env.example .env
 ```
 
-### 4. Generate Application Key
+**Jangan lupa**: `.env` tidak di-commit! Sekali edit, cukup untuk semua dev.
+
+### Step 3: Start Docker Containers
 
 ```bash
-php artisan key:generate
+./vendor/bin/sail up -d
 ```
 
-**Verifikasi**: Buka file `.env` dan pastikan `APP_KEY` sudah terisi dengan nilai `base64:...`
+**Penjelasan:**
+- `-d` = detached mode (jalan di background)
+- Akan pull image dan create container jika belum ada
+- Pertama kali bisa 2-3 menit
 
-### 5. Setup Database
+**Verifikasi container berjalan:**
+```bash
+./vendor/bin/sail ps
+# atau
+docker ps
+```
 
-Laravel project ini menggunakan SQLite. Jalankan perintah:
+Expected output:
+```
+NAME                        IMAGE          STATUS
+group1_mde-laravel.test-1   sail-8.5/app   Up 2 minutes
+group1_mde-mysql-1          mysql:8.4      Up 2 minutes (healthy)
+```
+
+### Step 4: Database Setup
 
 ```bash
+# Create database (jika belum ada)
+./vendor/bin/sail exec -T mysql mysql -u root -ppassword \
+  -e "CREATE DATABASE IF NOT EXISTS group1;"
+
+# Grant permissions
+./vendor/bin/sail exec -T mysql mysql -u root -ppassword \
+  -e "GRANT ALL PRIVILEGES ON group1.* TO 'sail'@'%';"
+
+# Flush privileges
+./vendor/bin/sail exec -T mysql mysql -u root -ppassword \
+  -e "FLUSH PRIVILEGES;"
+
+# Run migrations
+./vendor/bin/sail artisan migrate
+
+# Optional: seed database
+./vendor/bin/sail artisan db:seed
+```
+
+**Verifikasi database setup:**
+```bash
+./vendor/bin/sail tinker
+```
+
+Di dalam Tinker shell:
+```php
+DB::table('users')->count()        # Lihat jumlah users
+DB::select("SHOW TABLES;")         # Lihat semua tabel
+exit()
+```
+
+### Step 5: Akses Aplikasi
+
+Buka browser:
+```
+http://localhost
+```
+
+Harus menampilkan Laravel welcome page.
+
+---
+
+## 💻 Development Workflow
+
+### Menjalankan Command Laravel
+
+Gunakan `./vendor/bin/sail` sebagai prefix untuk semua command:
+
+```bash
+# ✅ BENAR - di dalam Docker
+./vendor/bin/sail artisan tinker
+./vendor/bin/sail artisan migrate
+./vendor/bin/sail artisan make:model Product
+./vendor/bin/sail artisan make:controller ProductController
+./vendor/bin/sail artisan make:migration create_products_table
+
+# ❌ SALAH - jangan langsung di OS
+php artisan tinker
 php artisan migrate
-```
-
-Perintah ini akan:
-- Membuat file `database/database.sqlite`
-- Membuat semua tabel database (users, cache, jobs, sessions, dll)
-
-### 6. Install Frontend Dependencies
-
-```bash
-npm install
-```
-
-### 7. Build Frontend Assets (Optional)
-
-Jika ingin menggunakan asset yang sudah di-build:
-
-```bash
-npm run build
-```
-
-Atau untuk development dengan hot reload:
-
-```bash
-npm run dev
-```
-*(Jalankan di terminal terpisah)*
-
-## 🎯 Menjalankan Aplikasi
-
-### Start Development Server
-
-```bash
 php artisan serve
 ```
 
-Output akan menunjukkan:
-```
-INFO  Server running on [http://127.0.0.1:8000].
-```
+### Akses Database dengan DBeaver
 
-Buka browser ke http://127.0.0.1:8000
+1. Buka DBeaver
+2. **Database** → **New Database Connection**
+3. Pilih **MySQL**
+4. Isi konfigurasi:
+   - **Server Host**: `localhost` atau `127.0.0.1`
+   - **Port**: `3306`
+   - **Database**: `group1`
+   - **Username**: `sail`
+   - **Password**: `password`
+5. **Test Connection** → **Finish**
 
-### Menjalankan Frontend Development (Opsional)
-
-Di terminal lain, jalankan:
+### Menjalankan Tests
 
 ```bash
-npm run dev
+# Run all tests
+./vendor/bin/sail artisan test
+
+# Run specific test file
+./vendor/bin/sail artisan test --filter=WarehouseTest
+
+# Run dengan coverage
+./vendor/bin/sail artisan test --coverage
 ```
 
-Ini akan menjalankan Vite untuk hot reload asset CSS/JS.
+### Menjalankan PHP Interactive Shell
+
+```bash
+./vendor/bin/sail tinker
+
+# Di dalam shell:
+> $user = User::first()
+> $user->email
+> exit()
+```
+
+### Install Package Baru
+
+```bash
+# Composer (PHP package)
+./vendor/bin/sail composer require laravel/sanctum
+
+# NPM (JavaScript package)
+./vendor/bin/sail npm install axios
+
+# Generate docs
+./vendor/bin/sail composer docs
+```
+
+---
 
 ## 📁 Struktur Proyek
 
 ```
 Group1_MDE/
-├── app/              # Aplikasi PHP
+├── app/                          # Aplikasi PHP
 │   ├── Http/
-│   ├── Models/
-│   └── Providers/
-├── config/           # File konfigurasi
-├── database/         # Database & migrations
-│   ├── database.sqlite    # SQLite database (auto-generated)
-│   ├── migrations/
-│   └── seeders/
-├── routes/           # Route definition
-├── resources/        # Frontend assets
-│   ├── css/
-│   ├── js/
-│   └── views/        # Blade templates
-├── public/           # Public files & entry point
-├── storage/          # Cache, sessions, logs
-├── tests/            # Unit & feature tests
-├── .env              # Environment variables (auto-generated)
-└── composer.json     # PHP dependencies
+│   │   ├── Controllers/          # API Controllers
+│   │   │   ├── WarehouseController.php    (Dev 1)
+│   │   │   ├── TrackingController.php     (Dev 2)
+│   │   │   ├── AuthController.php         (Dev 3)
+│   │   │   └── FleetController.php        (Dev 4)
+│   │   └── ...
+│   ├── Models/                   # Database Models
+│   │   ├── Package.php           (Dev 1)
+│   │   ├── Tracking.php          (Dev 2)
+│   │   ├── User.php              (Dev 3)
+│   │   ├── Fleet.php             (Dev 4)
+│   │   └── Hub.php               (Dev 4)
+│   ├── Repositories/             # Repository Pattern
+│   │   ├── PackageRepository.php (Dev 1)
+│   │   ├── TrackingRepository.php (Dev 2)
+│   │   ├── UserRepository.php    (Dev 3)
+│   │   ├── FleetRepository.php   (Dev 4)
+│   │   └── HubRepository.php     (Dev 4)
+│
+├── database/
+│   ├── migrations/               # Database Schema
+│   │   ├── *_create_packages_table.php
+│   │   ├── *_create_tracking_table.php
+│   │   └── ...
+│   ├── seeders/                  # Data Dummy (25K+ rows)
+│   │   ├── PackageSeeder.php
+│   │   ├── TrackingSeeder.php
+│   │   └── ...
+│
+├── routes/
+│   ├── api/
+│   │   ├── warehouse.php         # Dev 1 routes
+│   │   ├── tracking.php          # Dev 2 routes
+│   │   ├── auth.php              # Dev 3 routes
+│   │   └── fleet.php             # Dev 4 routes
+│
+├── tests/
+│   ├── Feature/
+│   │   ├── WarehouseTest.php
+│   │   ├── TrackingTest.php
+│   │   └── ...
+│
+├── docker-compose.yaml           # ⭐ Docker configuration
+├── Dockerfile                    # ⭐ Container definition
+├── .env.example                  # ⭐ Environment template
+├── .gitignore                    # ⭐ Git ignore rules
+└── README.md                     # ⭐ You are here!
 ```
 
-## 🔧 Troubleshooting
+---
 
-### Error: "No application encryption key has been specified"
+## 🐳 Docker Commands Penting
 
-**Solusi:**
-```bash
-php artisan key:generate
-```
-
-Pastikan `APP_KEY` di `.env` terisi.
-
-### Error: "Database file at path [...] does not exist"
-
-**Solusi:**
-```bash
-php artisan migrate
-```
-
-### Error: "Connection refused" atau port 8000 sudah ter-pakai
-
-Gunakan port berbeda:
-```bash
-php artisan serve --port=8001
-```
-
-### Composer install lambat atau error
-
-Jika menggunakan Windows dan terjadi error network:
-- Gunakan VPN atau cek koneksi internet
-- Atau clear cache: `composer clear-cache` dan coba lagi
-
-### Node modules issue
-
-Jika ada error dengan npm, coba:
-```bash
-rm package-lock.json
-npm install
-```
-
-## 📝 Development Commands
+### Container Management
 
 ```bash
-# Generate migration baru
-php artisan make:migration create_table_name
+# Start containers (background)
+./vendor/bin/sail up -d
 
-# Generate model baru
-php artisan make:model ModelName
+# Stop containers
+./vendor/bin/sail down
 
-# Generate controller baru
-php artisan make:controller ControllerName
+# Restart containers
+./vendor/bin/sail restart
 
-# Jalankan tests
-php artisan test
+# View container status
+./vendor/bin/sail ps
 
-# Lint PHP code
-./vendor/bin/pint
-
-# Clear all cache
-php artisan cache:clear
-php artisan view:clear
-php artisan config:clear
+# View logs
+./vendor/bin/sail logs
+./vendor/bin/sail logs mysql      # Hanya MySQL logs
+./vendor/bin/sail logs -f         # Follow logs (real-time)
 ```
 
-## ✅ Checklist Sebelum Mulai Development
+### Database Management
 
-- [ ] PHP 8.2+ terinstall
-- [ ] Composer terinstall
-- [ ] Node.js 18+ terinstall
-- [ ] Repository sudah di-clone
-- [ ] `composer install` sudah dijalankan
-- [ ] `.env` sudah dibuat
-- [ ] `php artisan key:generate` sudah dijalankan
-- [ ] `php artisan migrate` sudah dijalankan
-- [ ] `npm install` sudah dijalankan
-- [ ] Server bisa dijalankan dengan `php artisan serve` tanpa error
+```bash
+# Connect ke MySQL
+./vendor/bin/sail mysql -u sail -ppassword group1
 
-## 📚 Dokumentasi Menggunakan
+# Run query
+./vendor/bin/sail mysql -u sail -ppassword group1 -e "SELECT COUNT(*) FROM users;"
 
-- [Laravel Docs](https://laravel.com/docs/12.x)
-- [Vite Docs](https://vitejs.dev/)
-- [Tailwind CSS Docs](https://tailwindcss.com/docs)
+# Backup database
+./vendor/bin/sail exec -T mysql mysqldump -u root -ppassword \
+  --no-tablespaces group1 > backup.sql
 
-## 🤝 Kontribusi
+# Restore database
+./vendor/bin/sail exec -T mysql mysql -u root -ppassword group1 < backup.sql
+```
 
-1. Buat branch fitur: `git checkout -b feature/nama-fitur`
-2. Commit changes: `git commit -m 'Add nama-fitur'`
-3. Push ke branch: `git push origin feature/nama-fitur`
-4. Buat Pull Request
+### Artisan Commands (dalam Docker)
+
+```bash
+# ✅ Benar - semua pakai ./vendor/bin/sail
+./vendor/bin/sail artisan migrate
+./vendor/bin/sail artisan migration:fresh
+./vendor/bin/sail artisan db:seed
+./vendor/bin/sail artisan tinker
+./vendor/bin/sail artisan test
+./vendor/bin/sail composer require package-name
+./vendor/bin/sail npm install package-name
+```
+
+---
+
+## 👥 Modul & Tanggung Jawab Tim
+
+| No | Modul | Deskripsi | Developer |
+|----|----|-----------|-----------|
+| 1 | **Warehouse & Sorting** | API Manajemen Gudang, pendaftaran paket baru, dimensi paket | Dev 1 |
+| 2 | **Tracking System (Core)** | API Update Lokasi, riwayat status kronologis, pencarian resi | Dev 2 |
+| 3 | **Auth & Pricing** | Autentikasi Pelanggan, kalkulator ongkir dinamis, profil pengiriman | Dev 3 |
+| 4 | **Fleet & Hub** | API Manajemen Armada, monitoring kapasitas gudang, laporan durasi transit | Dev 4 |
+
+### Data Requirements
+
+- ✅ Tracking log: **minimal 25.000 rows** (seeder)
+- ✅ Fleet log: **minimal 5.000 rows** (seeder)
+
+---
+
+## 📋 Workflow Tim Development
+
+### Daily Workflow
+
+```bash
+# Pagi: Pull latest changes
+git pull origin develop
+
+# Sinkronisasi Docker
+./vendor/bin/sail down && ./vendor/bin/sail up -d
+./vendor/bin/sail migrate
+
+# Development
+# Edit: app/Models, app/Repositories, app/Http/Controllers
+# Run tests: ./vendor/bin/sail artisan test
+
+# Sore: Commit & Push
+git add .
+git commit -m "Feat: implement warehouse API"
+git push origin feature/warehouse-api
+```
+
+### Branch Strategy
+
+```
+main              (Production Ready - hanya dosen)
+  ↑
+develop           (Integration branch)
+  ↑
+feature/*         (Individual development)
+├─ feature/warehouse
+├─ feature/tracking  
+├─ feature/auth
+└─ feature/fleet
+```
+
+**Rules:**
+1. Selalu branch dari `develop`
+2. Push ke feature branch milik Anda
+3. Merge via Pull Request (PR review)
+4. After testing → merge ke `develop`
+5. Dosen merge `develop` ke `main`
+
+---
+
+## 🔧 Troubleshooting Docker
+
+### Problem: Container tidak start
+
+```bash
+# Cek error
+./vendor/bin/sail logs
+
+# Try rebuild
+./vendor/bin/sail build
+./vendor/bin/sail up -d
+
+# Nuclear option (hati-hati! hapus semua data)
+docker compose down -v
+./vendor/bin/sail up -d
+./vendor/bin/sail artisan migrate
+./vendor/bin/sail artisan db:seed
+```
+
+### Problem: Port sudah digunakan
+
+```bash
+# Edit .env
+# Ubah port:
+APP_PORT=8080    # dari 80 menjadi 8080
+FORWARD_DB_PORT=3307
+
+# Restart
+./vendor/bin/sail restart
+```
+
+### Problem: Database connection error
+
+```bash
+# Verifikasi database
+./vendor/bin/sail exec -T mysql mysql -u root -ppassword -e "SHOW DATABASES;"
+
+# Grant permissions
+./vendor/bin/sail exec -T mysql mysql -u root -ppassword \
+  -e "GRANT ALL PRIVILEGES ON group1.* TO 'sail'@'%';"
+
+./vendor/bin/sail exec -T mysql mysql -u root -ppassword \
+  -e "FLUSH PRIVILEGES;"
+
+# Run migration
+./vendor/bin/sail artisan migrate
+```
+
+### Problem: "Cannot GET /"
+
+Container tidak ready. Tunggu 10-15 detik, cek:
+```bash
+./vendor/bin/sail ps
+# STATUS harus "healthy" atau "Up"
+
+./vendor/bin/sail logs | tail -50
+```
+
+---
+
+## ✅ Checklist Setup Awal (Tim Lead)
+
+- [ ] Repository dibuat
+- [ ] Docker files ada: `docker-compose.yaml`, `Dockerfile`
+- [ ] `.env.example` sudah setup dengan benar
+- [ ] `.gitignore` include: `.env`, `vendor`, `node_modules`, `storage/logs`
+- [ ] Invite semua team member ke repo
+- [ ] Test: `./vendor/bin/sail up -d` berhasil
+- [ ] Test: `./vendor/bin/sail artisan migrate` berhasil
+- [ ] Share README ke team
+
+---
+
+## ✅ Checklist Setup (Setiap Developer Baru)
+
+- [ ] Docker Desktop terinstall
+- [ ] Repo di-clone
+- [ ] `cp .env.example .env`
+- [ ] `./vendor/bin/sail up -d` berhasil
+- [ ] `./vendor/bin/sail artisan migrate` berhasil
+- [ ] Akses `http://localhost` menampilkan Laravel page
+- [ ] `./vendor/bin/sail tinker` bisa dijalankan
+- [ ] Ready to develop!
+
+---
+
+## 🚀 Pre-Submission Checklist (Sebelum Transfer ke Dosen)
+
+```bash
+# 1. Cleanup git history
+git log --oneline | head -20
+# Harus clean, tidak ada "oops", "fix", "try lagi"
+
+# 2. Verifikasi .gitignore
+cat .gitignore | grep -E "^\.env$|^vendor/|^node_modules/"
+# Harus ada
+
+# 3. Test fresh clone (simulasi dosen)
+cd /tmp
+git clone <repo-url>
+cd Group1_MDE
+cp .env.example .env
+./vendor/bin/sail up -d
+./vendor/bin/sail artisan migrate
+./vendor/bin/sail artisan tinker
+DB::table('users')->count()  # Harus bisa
+exit()
+
+# 4. Jika OK, siap transfer ke dosen!
+```
+
+---
+
+## 📚 Resources
+
+- 📖 [Laravel Docs](https://laravel.com/docs/12.x)
+- 🐳 [Docker Docs](https://docs.docker.com/)
+- 🌐 [Laravel Sail Docs](https://laravel.com/docs/12.x/sail)
+- 📝 [Git Workflow](https://git-scm.com/book/en/v2/Git-Branching-Branching-Workflows)
+
+---
+
+## 🤝 Team Communication
+
+- **Daily Standup**: Report progress di setiap modul
+- **Weekly Integration**: Test semua modul bersamaan
+- **Issue Tracking**: Gunakan GitHub Issues untuk bugs/features
+- **Code Review**: Semua PR harus di-review minimal 1 orang
+
+---
 
 ## 📄 License
 
@@ -231,4 +549,10 @@ MIT
 
 ---
 
-**Pertanyaan?** Hubungi tim development atau buka issue di repository ini.
+**Need Help?**
+- Read this README carefully first
+- Check troubleshooting section
+- Ask team members
+- Contact instructor if stuck
+
+**Happy Coding! 🚀**

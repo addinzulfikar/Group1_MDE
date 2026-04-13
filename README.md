@@ -41,7 +41,7 @@ CONTAINER ID   IMAGE     COMMAND   CREATED   STATUS    PORTS     NAMES
 
 ## 🎯 Quick Start (5 Menit)
 
-Untuk developer yang baru pertama kali:
+### Untuk Linux / Mac (Bash)
 
 ```bash
 # 1. Clone repository
@@ -51,14 +51,16 @@ cd Group1_MDE
 # 2. Copy environment file
 cp .env.example .env
 
-# 3. Start Docker containers
+# 3. Install dependencies
+composer install
+
+# 4. Start Docker containers
 ./vendor/bin/sail up -d
 
-# 4. Setup database
+# 5. Setup database
 ./vendor/bin/sail artisan migrate
-./vendor/bin/sail artisan db:seed
 
-# 5. Verifikasi
+# 6. Verifikasi
 ./vendor/bin/sail tinker
 # Di dalam tinker:
 DB::table('users')->count()
@@ -66,6 +68,43 @@ exit()
 
 # Aplikasi ready!
 # Akses: http://localhost
+```
+
+### Untuk Windows PowerShell ⚠️ PENTING!
+
+**JANGAN gunakan `./vendor/bin/sail` di PowerShell!** Gunakan `docker compose` langsung:
+
+```powershell
+# 1. Clone repository
+git clone https://github.com/your-username/Group1_MDE.git
+cd Group1_MDE
+
+# 2. Copy environment file
+copy .env.example .env
+
+# 3. Install dependencies (perlu composer installed)
+composer install
+
+# 4. Start Docker containers (GUNA INI, BUKAN ./vendor/bin/sail)
+docker compose up -d
+
+# 5. Setup database
+docker compose exec laravel.test php artisan migrate
+
+# 6. Akses aplikasi
+# Buka: http://localhost
+```
+
+**Alternative untuk Windows (jika ada error):**
+```powershell
+# Build image terlebih dahulu
+docker compose build
+
+# Kemudian start
+docker compose up -d
+
+# Check status
+docker ps
 ```
 
 ---
@@ -79,63 +118,55 @@ git clone https://github.com/your-username/Group1_MDE.git
 cd Group1_MDE
 ```
 
-**Verifikasi struktur folder:**
-```bash
-ls -la
-# Harus ada: docker-compose.yaml, Dockerfile, .env.example, vendor/
-```
-
 ### Step 2: Copy Environment File
 
 ```bash
+# Linux/Mac
 cp .env.example .env
 
-# Atau di Windows:
+# Windows PowerShell
 copy .env.example .env
 ```
 
-**Jangan lupa**: `.env` tidak di-commit! Sekali edit, cukup untuk semua dev.
+### Step 3: Install Composer Dependencies
 
-### Step 3: Start Docker Containers
+```bash
+composer install
+```
 
+### Step 4: Start Docker Containers
+
+**Linux/Mac (Bash):**
 ```bash
 ./vendor/bin/sail up -d
 ```
 
-**Penjelasan:**
-- `-d` = detached mode (jalan di background)
-- Akan pull image dan create container jika belum ada
-- Pertama kali bisa 2-3 menit
+**Windows PowerShell:**
+```powershell
+docker compose build   # Build image dulu (pertama kali saja)
+docker compose up -d   # Start containers
+```
 
-**Verifikasi container berjalan:**
+Verifikasi container running:
 ```bash
+# Linux/Mac
 ./vendor/bin/sail ps
-# atau
+
+# Windows PowerShell
 docker ps
 ```
 
 Expected output:
 ```
-NAME                        IMAGE          STATUS
-group1_mde-laravel.test-1   sail-8.5/app   Up 2 minutes
-group1_mde-mysql-1          mysql:8.4      Up 2 minutes (healthy)
+CONTAINER ID   IMAGE          STATUS
+2ef91195c7b9   sail-8.5/app   Up 2 minutes
+a9ecc49f5ff5   mysql:8.4      Up 2 minutes (healthy)
 ```
 
-### Step 4: Database Setup
+### Step 5: Database Setup
 
+**Linux/Mac (Bash):**
 ```bash
-# Create database (jika belum ada)
-./vendor/bin/sail exec -T mysql mysql -u root -ppassword \
-  -e "CREATE DATABASE IF NOT EXISTS group1;"
-
-# Grant permissions
-./vendor/bin/sail exec -T mysql mysql -u root -ppassword \
-  -e "GRANT ALL PRIVILEGES ON group1.* TO 'sail'@'%';"
-
-# Flush privileges
-./vendor/bin/sail exec -T mysql mysql -u root -ppassword \
-  -e "FLUSH PRIVILEGES;"
-
 # Run migrations
 ./vendor/bin/sail artisan migrate
 
@@ -143,19 +174,16 @@ group1_mde-mysql-1          mysql:8.4      Up 2 minutes (healthy)
 ./vendor/bin/sail artisan db:seed
 ```
 
-**Verifikasi database setup:**
-```bash
-./vendor/bin/sail tinker
+**Windows PowerShell:**
+```powershell
+# Run migrations
+docker compose exec laravel.test php artisan migrate
+
+# Optional: seed database
+docker compose exec laravel.test php artisan db:seed
 ```
 
-Di dalam Tinker shell:
-```php
-DB::table('users')->count()        # Lihat jumlah users
-DB::select("SHOW TABLES;")         # Lihat semua tabel
-exit()
-```
-
-### Step 5: Akses Aplikasi
+### Step 6: Akses Aplikasi
 
 Buka browser:
 ```
@@ -170,15 +198,29 @@ Harus menampilkan Laravel welcome page.
 
 ### Menjalankan Command Laravel
 
-Gunakan `./vendor/bin/sail` sebagai prefix untuk semua command:
-
+**Linux/Mac (Bash) - Gunakan `./vendor/bin/sail`:**
 ```bash
-# ✅ BENAR - di dalam Docker
+# ✅ BENAR
 ./vendor/bin/sail artisan tinker
 ./vendor/bin/sail artisan migrate
 ./vendor/bin/sail artisan make:model Product
 ./vendor/bin/sail artisan make:controller ProductController
 ./vendor/bin/sail artisan make:migration create_products_table
+
+# ❌ SALAH - jangan langsung di OS
+php artisan tinker
+php artisan migrate
+php artisan serve
+```
+
+**Windows PowerShell - Gunakan `docker compose exec`:**
+```powershell
+# ✅ BENAR
+docker compose exec laravel.test php artisan tinker
+docker compose exec laravel.test php artisan migrate
+docker compose exec laravel.test php artisan make:model Product
+docker compose exec laravel.test php artisan make:controller ProductController
+docker compose exec laravel.test php artisan make:migration create_products_table
 
 # ❌ SALAH - jangan langsung di OS
 php artisan tinker
@@ -201,6 +243,7 @@ php artisan serve
 
 ### Menjalankan Tests
 
+**Linux/Mac:**
 ```bash
 # Run all tests
 ./vendor/bin/sail artisan test
@@ -212,8 +255,21 @@ php artisan serve
 ./vendor/bin/sail artisan test --coverage
 ```
 
-### Menjalankan PHP Interactive Shell
+**Windows PowerShell:**
+```powershell
+# Run all tests
+docker compose exec laravel.test php artisan test
 
+# Run specific test file
+docker compose exec laravel.test php artisan test --filter=WarehouseTest
+
+# Run dengan coverage
+docker compose exec laravel.test php artisan test --coverage
+```
+
+### Menjalankan PHP Interactive Shell (Tinker)
+
+**Linux/Mac:**
 ```bash
 ./vendor/bin/sail tinker
 
@@ -223,8 +279,19 @@ php artisan serve
 > exit()
 ```
 
+**Windows PowerShell:**
+```powershell
+docker compose exec laravel.test php artisan tinker
+
+# Di dalam shell:
+> $user = User::first()
+> $user->email
+> exit()
+```
+
 ### Install Package Baru
 
+**Linux/Mac:**
 ```bash
 # Composer (PHP package)
 ./vendor/bin/sail composer require laravel/sanctum
@@ -234,6 +301,18 @@ php artisan serve
 
 # Generate docs
 ./vendor/bin/sail composer docs
+```
+
+**Windows PowerShell:**
+```powershell
+# Composer (PHP package)
+docker compose exec laravel.test composer require laravel/sanctum
+
+# NPM (JavaScript package)
+docker compose exec laravel.test npm install axios
+
+# Generate docs
+docker compose exec laravel.test composer docs
 ```
 
 ---
@@ -299,6 +378,7 @@ Group1_MDE/
 
 ### Container Management
 
+**Untuk Linux/Mac (Bash):**
 ```bash
 # Start containers (background)
 ./vendor/bin/sail up -d
@@ -318,14 +398,32 @@ Group1_MDE/
 ./vendor/bin/sail logs -f         # Follow logs (real-time)
 ```
 
+**Untuk Windows PowerShell:**
+```powershell
+# Start containers (background)
+docker compose up -d
+
+# Stop containers
+docker compose down
+
+# Restart containers
+docker compose restart
+
+# View container status
+docker ps
+
+# View logs
+docker compose logs laravel.test
+docker compose logs mysql          # Hanya MySQL logs
+docker compose logs -f             # Follow logs (real-time)
+```
+
 ### Database Management
 
+**Untuk Linux/Mac (Bash):**
 ```bash
 # Connect ke MySQL
 ./vendor/bin/sail mysql -u sail -ppassword group1
-
-# Run query
-./vendor/bin/sail mysql -u sail -ppassword group1 -e "SELECT COUNT(*) FROM users;"
 
 # Backup database
 ./vendor/bin/sail exec -T mysql mysqldump -u root -ppassword \
@@ -335,8 +433,21 @@ Group1_MDE/
 ./vendor/bin/sail exec -T mysql mysql -u root -ppassword group1 < backup.sql
 ```
 
+**Untuk Windows PowerShell:**
+```powershell
+# Connect ke MySQL
+docker compose exec mysql mysql -u sail -ppassword group1
+
+# Backup database
+docker compose exec -T mysql mysqldump -u root -ppassword --no-tablespaces group1 > backup.sql
+
+# Restore database
+docker compose exec -T mysql mysql -u root -ppassword group1 < backup.sql
+```
+
 ### Artisan Commands (dalam Docker)
 
+**Untuk Linux/Mac (Bash):**
 ```bash
 # ✅ Benar - semua pakai ./vendor/bin/sail
 ./vendor/bin/sail artisan migrate
@@ -346,6 +457,18 @@ Group1_MDE/
 ./vendor/bin/sail artisan test
 ./vendor/bin/sail composer require package-name
 ./vendor/bin/sail npm install package-name
+```
+
+**Untuk Windows PowerShell:**
+```powershell
+# ✅ Benar - gunakan docker compose exec
+docker compose exec laravel.test php artisan migrate
+docker compose exec laravel.test php artisan migration:fresh
+docker compose exec laravel.test php artisan db:seed
+docker compose exec laravel.test php artisan tinker
+docker compose exec laravel.test php artisan test
+docker compose exec laravel.test composer require package-name
+docker compose exec laravel.test npm install package-name
 ```
 
 ---
@@ -370,6 +493,7 @@ Group1_MDE/
 
 ### Daily Workflow
 
+**Linux/Mac (Bash):**
 ```bash
 # Pagi: Pull latest changes
 git pull origin develop
@@ -381,6 +505,26 @@ git pull origin develop
 # Development
 # Edit: app/Models, app/Repositories, app/Http/Controllers
 # Run tests: ./vendor/bin/sail artisan test
+
+# Sore: Commit & Push
+git add .
+git commit -m "Feat: implement warehouse API"
+git push origin feature/warehouse-api
+```
+
+**Windows PowerShell:**
+```powershell
+# Pagi: Pull latest changes
+git pull origin develop
+
+# Sinkronisasi Docker
+docker compose down
+docker compose up -d
+docker compose exec laravel.test php artisan migrate
+
+# Development
+# Edit: app/Models, app/Repositories, app/Http/Controllers
+# Run tests: docker compose exec laravel.test php artisan test
 
 # Sore: Commit & Push
 git add .
@@ -411,10 +555,104 @@ feature/*         (Individual development)
 
 ---
 
+## 🪟 Windows PowerShell - KHUSUS! ⚠️
+
+### Masalah: `./vendor/bin/sail` tidak dikenal di PowerShell
+
+**JANGAN gunakan Bash syntax di PowerShell!** 
+
+❌ **SALAH:**
+```powershell
+./vendor/bin/sail up -d              # Error!
+./vendor/bin/sail artisan migrate    # Error!
+```
+
+✅ **BENAR - Gunakan `docker compose` atau `php vendor\bin\sail`:**
+
+```powershell
+# Option 1: Docker Compose langsung (Recommended)
+docker compose up -d
+docker compose exec laravel.test php artisan migrate
+docker compose exec laravel.test php artisan tinker
+docker compose ps
+docker compose logs laravel.test
+
+# Option 2: Menggunakan PHP (jika vendor sudah ada)
+php vendor\bin\sail up -d
+php vendor\bin\sail artisan migrate
+```
+
+### Command Reference untuk Windows PowerShell
+
+| Task | Command |
+|------|---------|
+| Start containers | `docker compose up -d` |
+| Stop containers | `docker compose down` |
+| View logs | `docker compose logs laravel.test -f` |
+| Run migration | `docker compose exec laravel.test php artisan migrate` |
+| Access Tinker | `docker compose exec laravel.test php artisan tinker` |
+| Run tests | `docker compose exec laravel.test php artisan test` |
+| Database connection | `docker compose exec mysql mysql -u sail -ppassword group1` |
+
+### PowerShell Common Issues & Solutions
+
+#### Issue 1: Vendor directory tidak ada
+
+```powershell
+# Pastikan install composer dependencies terlebih dahulu
+composer install
+
+# Baru jalankan Docker
+docker compose up -d
+```
+
+#### Issue 2: Cache error (RedisException)
+
+Edit `.env` dan ubah:
+```
+CACHE_STORE=file       # Dari redis ke file
+```
+
+Kemudian restart:
+```powershell
+docker compose restart
+```
+
+#### Issue 3: Localhost loading terus (hangs)
+
+```powershell
+# 1. Jalankan migration
+docker compose exec laravel.test php artisan migrate
+
+# 2. Clear cache
+docker compose exec laravel.test php artisan cache:clear
+docker compose exec laravel.test php artisan config:clear
+
+# 3. Restart containers
+docker compose restart
+
+# 4. Akses http://localhost di browser (tunggu 5-10 detik)
+```
+
+#### Issue 4: Port 80 sudah terpakai
+
+Edit `.env`:
+```
+APP_PORT=8000
+```
+
+Kemudian restart dan akses `http://localhost:8000`:
+```powershell
+docker compose restart
+```
+
+---
+
 ## 🔧 Troubleshooting Docker
 
 ### Problem: Container tidak start
 
+**Linux/Mac:**
 ```bash
 # Cek error
 ./vendor/bin/sail logs
@@ -430,6 +668,23 @@ docker compose down -v
 ./vendor/bin/sail artisan db:seed
 ```
 
+**Windows PowerShell:**
+```powershell
+# Cek error
+docker compose logs laravel.test
+
+# Try rebuild
+docker compose build
+docker compose up -d
+
+# Nuclear option (hati-hati! hapus semua data)
+docker compose down -v
+docker compose build
+docker compose up -d
+docker compose exec laravel.test php artisan migrate
+docker compose exec laravel.test php artisan db:seed
+```
+
 ### Problem: Port sudah digunakan
 
 ```bash
@@ -439,11 +694,14 @@ APP_PORT=8080    # dari 80 menjadi 8080
 FORWARD_DB_PORT=3307
 
 # Restart
-./vendor/bin/sail restart
+./vendor/bin/sail restart    # Linux/Mac
+# atau
+docker compose restart       # PowerShell
 ```
 
 ### Problem: Database connection error
 
+**Linux/Mac:**
 ```bash
 # Verifikasi database
 ./vendor/bin/sail exec -T mysql mysql -u root -ppassword -e "SHOW DATABASES;"
@@ -457,6 +715,20 @@ FORWARD_DB_PORT=3307
 
 # Run migration
 ./vendor/bin/sail artisan migrate
+```
+
+**Windows PowerShell:**
+```powershell
+# Verifikasi database
+docker compose exec -T mysql mysql -u root -ppassword -e "SHOW DATABASES;"
+
+# Grant permissions
+docker compose exec -T mysql mysql -u root -ppassword -e "GRANT ALL PRIVILEGES ON group1.* TO 'sail'@'%';"
+
+docker compose exec -T mysql mysql -u root -ppassword -e "FLUSH PRIVILEGES;"
+
+# Run migration
+docker compose exec laravel.test php artisan migrate
 ```
 
 ### Problem: "Cannot GET /"

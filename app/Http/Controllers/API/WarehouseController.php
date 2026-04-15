@@ -90,6 +90,11 @@ class WarehouseController extends Controller
                 'error' => 'The warehouse with ID ' . $id . ' does not exist'
             ], 404);
         } catch (\Exception $e) {
+            \Log::error('Warehouse show error: ' . $e->getMessage(), [
+                'warehouse_id' => $id,
+                'trace' => $e->getTraceAsString()
+            ]);
+            
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to retrieve warehouse',
@@ -107,11 +112,28 @@ class WarehouseController extends Controller
             $warehouse = Warehouse::findOrFail($id);
 
             $warehouse->update($request->validated());
+            
+            // Refresh warehouse data
+            $warehouse->refresh();
+            
+            // Convert to array for response
+            $warehouseData = $warehouse->toArray();
+            
+            // Ensure 'id' exists
+            if (!isset($warehouseData['id'])) {
+                $warehouseData['id'] = $warehouse->id;
+            }
+            
+            // Calculate usage percentage
+            $usagePercentage = $warehouse->capacity > 0 
+                ? round(($warehouse->current_load / $warehouse->capacity) * 100, 2) 
+                : 0;
+            $warehouseData['usage_percentage'] = $usagePercentage;
 
             return response()->json([
                 'success' => true,
                 'message' => 'Warehouse updated successfully',
-                'data' => $warehouse
+                'data' => $warehouseData
             ], 200);
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             return response()->json([
@@ -120,6 +142,11 @@ class WarehouseController extends Controller
                 'error' => 'The warehouse with ID ' . $id . ' does not exist'
             ], 404);
         } catch (\Exception $e) {
+            \Log::error('Warehouse update error: ' . $e->getMessage(), [
+                'warehouse_id' => $id,
+                'trace' => $e->getTraceAsString()
+            ]);
+            
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to update warehouse',

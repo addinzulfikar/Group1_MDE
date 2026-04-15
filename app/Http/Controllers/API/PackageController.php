@@ -55,15 +55,26 @@ class PackageController extends Controller
                 'volume' => $volume
             ]);
 
+            // Convert to array for response
+            $packageData = $package->toArray();
+            
+            // Ensure 'id' exists
+            if (!isset($packageData['id'])) {
+                $packageData['id'] = $package->id;
+            }
+            
+            $packageData['dimension_category'] = $package->getDimensionCategory();
+
             return response()->json([
                 'success' => true,
                 'message' => 'Package registered successfully',
-                'data' => [
-                    ...$package->toArray(),
-                    'dimension_category' => $package->getDimensionCategory()
-                ]
+                'data' => $packageData
             ], 201);
         } catch (\Exception $e) {
+            \Log::error('Package store error: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString()
+            ]);
+            
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to register package',
@@ -102,6 +113,11 @@ class PackageController extends Controller
                 'error' => 'The package with ID ' . $id . ' does not exist'
             ], 404);
         } catch (\Exception $e) {
+            \Log::error('Package show error: ' . $e->getMessage(), [
+                'package_id' => $id,
+                'trace' => $e->getTraceAsString()
+            ]);
+            
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to retrieve package',
@@ -122,21 +138,31 @@ class PackageController extends Controller
 
             // Recalculate volume if any dimension is updated
             if ($request->has('length') || $request->has('width') || $request->has('height')) {
-                $length = $data['length'] ?? $package->length;
-                $width = $data['width'] ?? $package->width;
-                $height = $data['height'] ?? $package->height;
+                $length = $data['length'] ?? $package->length ?? 0;
+                $width = $data['width'] ?? $package->width ?? 0;
+                $height = $data['height'] ?? $package->height ?? 0;
                 $data['volume'] = $length * $width * $height;
             }
 
             $package->update($data);
+            
+            // Refresh package data
+            $package->refresh();
+            
+            // Convert to array for response
+            $packageData = $package->toArray();
+            
+            // Ensure 'id' exists
+            if (!isset($packageData['id'])) {
+                $packageData['id'] = $package->id;
+            }
+            
+            $packageData['dimension_category'] = $package->getDimensionCategory();
 
             return response()->json([
                 'success' => true,
                 'message' => 'Package updated successfully',
-                'data' => [
-                    ...$package->toArray(),
-                    'dimension_category' => $package->getDimensionCategory()
-                ]
+                'data' => $packageData
             ], 200);
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             return response()->json([
@@ -145,6 +171,11 @@ class PackageController extends Controller
                 'error' => 'The package with ID ' . $id . ' does not exist'
             ], 404);
         } catch (\Exception $e) {
+            \Log::error('Package update error: ' . $e->getMessage(), [
+                'package_id' => $id,
+                'trace' => $e->getTraceAsString()
+            ]);
+            
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to update package',

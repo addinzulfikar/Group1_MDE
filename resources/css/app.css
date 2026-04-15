@@ -1,12 +1,87 @@
-@import 'tailwindcss';
+@import 'bootstrap/dist/css/bootstrap.min.css';
 
-@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
-@source '../../storage/framework/views/*.php';
-@source "../**/*.blade.php";
-@source "../**/*.js";
-@source "../**/*.vue";
+:root {
+    --dashboard-bg: #eef1f7;
+    --surface: #ffffff;
+    --border-soft: #dfe5ef;
+    --brand-strong: #1463da;
+    --brand-dark: #0f4db1;
+    --text-muted-2: #6c7a91;
+}
 
-@theme {
-    --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
-        'Segoe UI Symbol', 'Noto Color Emoji';
+body {
+    background: var(--dashboard-bg);
+    color: #172b4d;
+    font-family: 'Inter', 'Segoe UI', sans-serif;
+}
+
+.app-navbar {
+    background: linear-gradient(90deg, #1866df 0%, #0b57d0 100%);
+}
+
+.card-soft {
+    border: 1px solid var(--border-soft);
+    border-radius: 1rem;
+    background: var(--surface);
+    box-shadow: 0 8px 20px rgba(21, 50, 88, 0.06);
+}
+
+.summary-box {
+    border: 1px solid var(--border-soft);
+    border-radius: 0.9rem;
+    background: #f8faff;
+}
+
+.pill-live {
+    border-radius: 999px;
+    background: #edf3ff;
+    color: #2d4f91;
+    font-size: 0.875rem;
+}
+
+.hub-item {
+    border: 1px solid var(--border-soft);
+    border-radius: 0.85rem;
+    background: #fafcff;
+}
+
+.table thead th {
+    font-size: 0.72rem;
+    letter-spacing: 0.08em;
+    color: var(--text-muted-2);
+    background: #f6f8fc;
+    border-bottom: 1px solid var(--border-soft);
+}
+
+.status-pill {
+    border-radius: 999px;
+    padding: 0.25rem 0.75rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.status-idle {
+    background: #d7f5e8;
+    color: #106a45;
+}
+
+.status-maintenance {
+    background: #ffe6cc;
+    color: #8a4b04;
+}
+
+.status-transit {
+    background: #d8e8ff;
+    color: #0f4db1;
+}
+
+.btn-brand {
+    background-color: var(--brand-strong);
+    border-color: var(--brand-strong);
+}
+
+.btn-brand:hover,
+.btn-brand:focus {
+    background-color: var(--brand-dark);
+    border-color: var(--brand-dark);
 }

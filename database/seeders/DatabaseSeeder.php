@@ -17,6 +17,8 @@ class DatabaseSeeder extends Seeder
 
         // Disable mass assignment checks and clear old data for fresh re-seed
         \Illuminate\Support\Facades\DB::statement('SET FOREIGN_KEY_CHECKS=0;');
+        \Illuminate\Support\Facades\DB::table('tracking_histories')->truncate();
+        \Illuminate\Support\Facades\DB::table('shipments')->truncate();
         \Illuminate\Support\Facades\DB::table('fleet_logs')->truncate();
         \Illuminate\Support\Facades\DB::table('fleets')->truncate();
         \Illuminate\Support\Facades\DB::table('hubs')->truncate();
@@ -90,6 +92,13 @@ class DatabaseSeeder extends Seeder
             \Illuminate\Support\Facades\DB::table('fleet_logs')->insert($fleetLogs);
         }
 
-        $this->command->info('✅ Seeding Modul 4 (5,000 Dummy Data) Completed Successfully!');
+        $this->command->info('✅ Seeding Modul 4 (5,000 Fleet Logs) Completed Successfully!');
+
+        // Call ShipmentSeeder for Modul 2
+        $this->command->info('');
+        $this->command->info('═══════════════════════════════════════════════');
+        $this->command->info('Starting Modul 2: Tracking System Seeder');
+        $this->command->info('═══════════════════════════════════════════════');
+        $this->call(ShipmentSeeder::class);
     }
 }

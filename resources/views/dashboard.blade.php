@@ -235,22 +235,47 @@
                     .then(response => response.json())
                     .then(res => {
                         let historyCount = res.data.history ? res.data.history.length : 0;
+                        let historyHtml = '';
+                        
+                        if(historyCount > 0) {
+                            historyHtml = '<div style="max-height: 200px; overflow-y: auto;" class="mt-3 text-start"><h6 class="fw-bold mb-2">Riwayat Transit Terbaru:</h6><ul class="list-group list-group-flush mb-3">';
+                            // Batasi hanya menampilkan 5 riwayat terbaru agar popup tidak kepanjangan
+                            res.data.history.slice(0, 5).forEach(h => {
+                                historyHtml += `<li class="list-group-item px-0 py-2 border-bottom">
+                                    <div class="d-flex justify-content-between mb-1">
+                                        <span class="text-dark fw-bold" style="font-size:0.9em;"><i class="bi bi-box-seam text-primary"></i> ${h.packages_carried} Paket</span>
+                                        <span class="badge bg-secondary">${h.duration_hours} Jam</span>
+                                    </div>
+                                    <div class="text-muted" style="font-size:0.85em;">
+                                        <i class="bi bi-geo-alt"></i> ${h.origin_hub} <i class="bi bi-arrow-right mx-1"></i> ${h.destination_hub}<br>
+                                        <small><i class="bi bi-clock"></i> ${h.departed_at} s/d ${h.arrived_at}</small>
+                                    </div>
+                                </li>`;
+                            });
+                            historyHtml += '</ul></div>';
+                        }
+
                         Swal.fire({
                             icon: 'success',
                             title: '📊 Laporan API Diterima',
                             html: `
                                 <div class="text-start mt-3">
-                                    <div class="alert alert-light border">
+                                    <h5 class="fw-bold text-center text-dark mb-3">Armada ${res.data.plate_number} <span class="badge bg-light text-dark fs-6 text-capitalize border">${res.data.type}</span></h5>
+                                    
+                                    <div class="alert alert-light border mb-0">
                                         <div class="d-flex justify-content-between mb-2">
                                             <span class="text-muted">Total Pergerakan Truk:</span>
-                                            <strong>\${historyCount} x Berpindah Hub</strong>
+                                            <strong>${historyCount} x Perjalanan</strong>
                                         </div>
                                         <div class="d-flex justify-content-between">
                                             <span class="text-muted">Rata-rata Waktu Transit:</span>
-                                            <span class="badge bg-primary fs-6">\${res.data.average_duration_hours} Jam</span>
+                                            <span class="badge bg-primary fs-6">${res.data.average_duration_hours} Jam</span>
                                         </div>
                                     </div>
-                                    <small class="text-muted"><i class="bi bi-info-circle"></i> Endpoint dipanggil: <br><code>\${url}</code></small>
+                                    
+                                    ${historyHtml}
+
+                                    <small class="text-muted mt-3 d-block"><i class="bi bi-info-circle"></i> Endpoint dipanggil: <br><code>${url}</code></small>
                                 </div>
                             `,
                             confirmButtonText: 'Tutup',

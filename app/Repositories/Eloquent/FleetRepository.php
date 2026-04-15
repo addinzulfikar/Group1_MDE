@@ -29,30 +29,37 @@ class FleetRepository implements FleetRepositoryInterface
     public function calculateTransitDuration($fleetId)
     {
         // Get all arrived logs for the fleet to calculate duration
-        $logs = FleetLog::where('fleet_id', $fleetId)
+        $logs = FleetLog::with(['originHub', 'destinationHub'])
+                        ->where('fleet_id', $fleetId)
                         ->whereNotNull('departed_at')
                         ->whereNotNull('arrived_at')
+                        ->latest('arrived_at')
                         ->get();
 
-        $transitReports = $logs->map(function ($log) {
+        $fleet = Fleet::findOrFail($fleetId);
+
+        $transitReports = $logs->map(function ($log) use ($fleet) {
             $departed = Carbon::parse($log->departed_at);
             $arrived = Carbon::parse($log->arrived_at);
             $durationInHours = $departed->diffInHours($arrived);
 
             return [
                 'log_id' => $log->id,
-                'origin_hub_id' => $log->origin_hub_id,
-                'destination_hub_id' => $log->destination_hub_id,
-                'departed_at' => $log->departed_at,
-                'arrived_at' => $log->arrived_at,
+                'origin_hub' => $log->originHub ? $log->originHub->name : 'Unknown (Penugasan Awal)',
+                'destination_hub' => $log->destinationHub ? $log->destinationHub->name : 'Unknown',
+                'departed_at' => $departed->format('d M y H:i'),
+                'arrived_at' => $arrived->format('d M y H:i'),
                 'duration_hours' => $durationInHours,
+                'packages_carried' => $fleet->capacity, // Simulasi armada selalu membawa muatan sesuai kapasitas
             ];
         });
 
         $avgDuration = $transitReports->avg('duration_hours');
 
         return [
-            'fleet_id' => $fleetId,
+            'fleet_id' => $fleet->id,
+            'plate_number' => $fleet->plate_number,
+            'type' => $fleet->type,
             'average_duration_hours' => round($avgDuration, 2),
             'history' => $transitReports
         ];
@@ -71,10 +78,12 @@ class FleetRepository implements FleetRepositoryInterface
         $fleet->save();
 
         if ($oldStatus == 'idle' && $status == 'in_transit') {
+            // Armada membawa paket keluar gudang, tumpukan paket (beban) gudang berkurang
             if ($fleet->current_hub_id) {
                 \App\Models\Hub::where('id', $fleet->current_hub_id)->decrement('current_load', $fleet->capacity);
             }
         } elseif ($oldStatus == 'in_transit' && $status == 'idle') {
+            // Armada tiba dan membongkar muatan, tumpukan paket (beban) gudang bertambah
             if ($fleet->current_hub_id) {
                 \App\Models\Hub::where('id', $fleet->current_hub_id)->increment('current_load', $fleet->capacity);
             }
@@ -90,17 +99,17 @@ class FleetRepository implements FleetRepositoryInterface
         
         if ($oldHubId == $newHubId) return $fleet;
 
-        // Kurangi muatan dari terminal asal
-        if ($oldHubId && $fleet->status != 'in_transit') {
-            \App\Models\Hub::where('id', $oldHubId)->decrement('current_load', $fleet->capacity);
-        }
+        $oldStatus = $fleet->status;
 
         $fleet->current_hub_id = $newHubId;
         $fleet->status = 'idle'; // Otomatis sampai di tempat jadi nunggu tugas lagi
         $fleet->save();
 
-        // Tambah muatan terminal ke tempat tujuan
-        \App\Models\Hub::where('id', $newHubId)->increment('current_load', $fleet->capacity);
+        // JIKA TRUK INI MEMANG SEDANG DALAM PERJALANAN (IN TRANSIT) MEMBAWA BARANG
+        // MAKA KETIKA TIBA DI LOKASI BARU, BEBAN GUDANG BARU HARUS BERTAMBAH (BONGKAR MUAT)
+        if ($oldStatus == 'in_transit') {
+            \App\Models\Hub::where('id', $newHubId)->increment('current_load', $fleet->capacity);
+        }
         
         // Catat di sistem riwayat pencatatan Fleet Log dengan kolom yang benar!
         \App\Models\FleetLog::create([

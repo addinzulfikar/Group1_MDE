@@ -22,7 +22,7 @@ class UpdateWarehouseRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'warehouse_code' => 'nullable|string|unique:warehouses,warehouse_code,' . $this->warehouse->id . '|max:50',
+            'warehouse_code' => 'nullable|string|unique:warehouses,warehouse_code,' . $this->route('id') . '|max:50',
             'warehouse_name' => 'nullable|string|max:100',
             'location' => 'nullable|string|max:255',
             'capacity' => 'nullable|integer|min:1',

@@ -531,11 +531,11 @@
             const id = document.getElementById('warehouseId').value;
             const warehouse_code = document.getElementById('warehouse_code').value;
             const warehouse_name = document.getElementById('warehouse_name').value;
-            const location = document.getElementById('warehouse_location').value;
+            const warehouseLocation = document.getElementById('warehouse_location').value;
             const capacity = document.getElementById('warehouse_capacity').value;
             const status = document.getElementById('warehouse_status').value;
             
-            if (!warehouse_code.trim() || !warehouse_name.trim() || !location.trim() || !capacity || capacity <= 0) {
+            if (!warehouse_code.trim() || !warehouse_name.trim() || !warehouseLocation.trim() || !capacity || capacity <= 0) {
                 alert('Please fill all required fields correctly');
                 return;
             }
@@ -543,7 +543,7 @@
             const data = {
                 warehouse_code: warehouse_code.trim(),
                 warehouse_name: warehouse_name.trim(),
-                location: location.trim(),
+                location: warehouseLocation.trim(),
                 capacity: parseInt(capacity),
                 status: status
             };
@@ -555,7 +555,7 @@
                 .then(response => {
                     if (response.data?.success) {
                         alert('Warehouse saved successfully!');
-                        location.reload();
+                        window.location.reload();
                     } else {
                         alert('Error: ' + (response.data?.message || 'Unknown error occurred'));
                     }
@@ -573,7 +573,7 @@
                     .then(response => {
                         if (response.data?.success) {
                             alert('Warehouse deleted successfully!');
-                            location.reload();
+                            window.location.reload();
                         }
                     })
                     .catch(error => {
@@ -684,7 +684,7 @@
                 .then(response => {
                     if (response.data?.success) {
                         alert('Package saved successfully!');
-                        location.reload();
+                        window.location.reload();
                     } else {
                         alert('Error: ' + (response.data?.message || 'Unknown error occurred'));
                     }
@@ -702,7 +702,7 @@
                     .then(response => {
                         if (response.data?.success) {
                             alert('Package deleted successfully!');
-                            location.reload();
+                            window.location.reload();
                         }
                     })
                     .catch(error => {

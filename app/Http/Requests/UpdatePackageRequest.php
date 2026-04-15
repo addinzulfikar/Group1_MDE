@@ -22,7 +22,7 @@ class UpdatePackageRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'tracking_number' => 'nullable|string|unique:packages,tracking_number,' . $this->package->id . '|max:50',
+            'tracking_number' => 'nullable|string|unique:packages,tracking_number,' . $this->route('id') . '|max:50',
             'sender_name' => 'nullable|string|max:100',
             'receiver_name' => 'nullable|string|max:100',
             'origin' => 'nullable|string|max:255',

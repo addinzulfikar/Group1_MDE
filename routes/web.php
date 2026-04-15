@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 
 use App\Repositories\Contracts\FleetRepositoryInterface;
 use App\Repositories\Contracts\HubRepositoryInterface;
+use App\Http\Controllers\Module1MonitoringController;
 
 Route::get('/', function (\Illuminate\Http\Request $request, HubRepositoryInterface $hubRepo, FleetRepositoryInterface $fleetRepo) {
     if(!\Illuminate\Support\Facades\Schema::hasTable('hubs')) {
@@ -16,3 +17,6 @@ Route::get('/', function (\Illuminate\Http\Request $request, HubRepositoryInterf
     
     return view('dashboard', compact('hubs', 'allHubs', 'fleets'));
 });
+
+// Module 1: Warehouse & Package Monitoring
+Route::get('/module-1-monitor', [Module1MonitoringController::class, 'index'])->name('module1.monitoring');

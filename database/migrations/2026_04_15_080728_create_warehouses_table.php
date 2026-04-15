@@ -13,6 +13,12 @@ return new class extends Migration
     {
         Schema::create('warehouses', function (Blueprint $table) {
             $table->id();
+            $table->string('warehouse_code')->unique();
+            $table->string('warehouse_name');
+            $table->string('location');
+            $table->integer('capacity');
+            $table->integer('current_load')->default(0);
+            $table->enum('status', ['active', 'inactive'])->default('active');
             $table->timestamps();
         });
     }

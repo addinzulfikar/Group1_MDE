@@ -488,31 +488,118 @@
         }
 
         function editWarehouse(id) {
+            // Validate ID
+            if (!id || id <= 0) {
+                alert('Error: Invalid warehouse ID');
+                console.error('Invalid warehouse ID:', id);
+                return;
+            }
+            
             axios.get(`${API_URL}/warehouse/${id}`)
                 .then(response => {
+                    console.log('Warehouse API Response:', response.data);
+                    
+                    // Check if response has success flag
+                    if (!response.data || !response.data.success) {
+                        alert('Error: Server response indicates failure');
+                        console.error('Failed response:', response.data);
+                        return;
+                    }
+                    
+                    // Get data
                     const data = response.data.data;
-                    document.getElementById('warehouseId').value = id;
-                    document.getElementById('warehouse_code').value = data.warehouse_code;
-                    document.getElementById('warehouse_name').value = data.warehouse_name;
-                    document.getElementById('warehouse_location').value = data.location;
-                    document.getElementById('warehouse_capacity').value = data.capacity;
-                    document.getElementById('warehouse_status').value = data.status;
-                    document.getElementById('warehouseModalTitle').textContent = 'Edit Warehouse';
-                    document.getElementById('warehouseSubmitBtn').textContent = 'Update';
-                    document.getElementById('warehouseModal').classList.remove('hidden');
+                    
+                    if (!data || typeof data !== 'object') {
+                        alert('Error: Invalid data format from server. Got: ' + typeof data);
+                        console.error('Invalid data structure:', data);
+                        return;
+                    }
+                    
+                    // Safely assign values
+                    try {
+                        const warehouseIdField = document.getElementById('warehouseId');
+                        const codeField = document.getElementById('warehouse_code');
+                        const nameField = document.getElementById('warehouse_name');
+                        const locationField = document.getElementById('warehouse_location');
+                        const capacityField = document.getElementById('warehouse_capacity');
+                        const statusField = document.getElementById('warehouse_status');
+                        
+                        if (!warehouseIdField || !codeField || !nameField || !locationField || !capacityField || !statusField) {
+                            alert('Error: Some form fields not found');
+                            console.error('Missing form fields');
+                            return;
+                        }
+                        
+                        warehouseIdField.value = data.id || id;
+                        codeField.value = data.warehouse_code || '';
+                        nameField.value = data.warehouse_name || '';
+                        locationField.value = data.location || '';
+                        capacityField.value = data.capacity || '';
+                        statusField.value = data.status || 'active';
+                        
+                        document.getElementById('warehouseModalTitle').textContent = 'Edit Warehouse';
+                        document.getElementById('warehouseSubmitBtn').textContent = 'Update';
+                        document.getElementById('warehouseModal').classList.remove('hidden');
+                        
+                        console.log('Form populated successfully');
+                    } catch (e) {
+                        alert('Error populating form: ' + e.message);
+                        console.error('Form population error:', e);
+                    }
                 })
-                .catch(error => alert('Error loading warehouse'));
+                .catch(error => {
+                    console.error('Axios error:', error);
+                    let errorMsg = 'Failed to load warehouse';
+                    
+                    if (error.response) {
+                        errorMsg = error.response.data?.message || error.response.statusText || errorMsg;
+                        console.error('Response status:', error.response.status);
+                        console.error('Response data:', error.response.data);
+                    } else if (error.request) {
+                        errorMsg = 'No response from server';
+                        console.error('No response:', error.request);
+                    } else {
+                        errorMsg = error.message;
+                    }
+                    
+                    alert('Error: ' + errorMsg);
+                });
         }
 
         function saveWarehouse(e) {
             e.preventDefault();
+            
             const id = document.getElementById('warehouseId').value;
+            const warehouse_code = document.getElementById('warehouse_code').value;
+            const warehouse_name = document.getElementById('warehouse_name').value;
+            const location = document.getElementById('warehouse_location').value;
+            const capacity = document.getElementById('warehouse_capacity').value;
+            const status = document.getElementById('warehouse_status').value;
+            
+            // Validation
+            if (!warehouse_code.trim()) {
+                alert('Warehouse code is required');
+                return;
+            }
+            if (!warehouse_name.trim()) {
+                alert('Warehouse name is required');
+                return;
+            }
+            if (!location.trim()) {
+                alert('Location is required');
+                return;
+            }
+            if (!capacity || capacity <= 0) {
+                alert('Capacity must be greater than 0');
+                return;
+            }
+            
             const data = {
-                warehouse_code: document.getElementById('warehouse_code').value,
-                warehouse_name: document.getElementById('warehouse_name').value,
-                location: document.getElementById('warehouse_location').value,
-                capacity: document.getElementById('warehouse_capacity').value,
-                status: document.getElementById('warehouse_status').value
+                warehouse_code: warehouse_code.trim(),
+                warehouse_name: warehouse_name.trim(),
+                location: location.trim(),
+                capacity: parseInt(capacity),
+                status: status
             };
 
             const method = id ? 'put' : 'post';
@@ -520,12 +607,17 @@
 
             axios[method](url, data)
                 .then(response => {
-                    alert('Warehouse saved successfully!');
-                    location.reload();
+                    if (response.data?.success) {
+                        alert('Warehouse saved successfully!');
+                        location.reload();
+                    } else {
+                        alert('Error: ' + (response.data?.message || 'Unknown error occurred'));
+                    }
                 })
                 .catch(error => {
-                    console.error(error);
-                    alert('Error: ' + (error.response?.data?.message || 'Failed to save warehouse'));
+                    console.error('Error saving warehouse:', error);
+                    const errorMsg = error.response?.data?.message || error.message || 'Failed to save warehouse';
+                    alert('Error: ' + errorMsg);
                 });
         }
 
@@ -556,43 +648,160 @@
         }
 
         function editPackage(id) {
+            // Validate ID
+            if (!id || id <= 0) {
+                alert('Error: Invalid package ID');
+                console.error('Invalid package ID:', id);
+                return;
+            }
+            
             axios.get(`${API_URL}/package/${id}`)
                 .then(response => {
+                    console.log('Package API Response:', response.data);
+                    
+                    // Check if response has success flag
+                    if (!response.data || !response.data.success) {
+                        alert('Error: Server response indicates failure');
+                        console.error('Failed response:', response.data);
+                        return;
+                    }
+                    
+                    // Get data
                     const data = response.data.data;
-                    document.getElementById('packageId').value = id;
-                    document.getElementById('tracking_number').value = data.tracking_number;
-                    document.getElementById('sender_name').value = data.sender_name;
-                    document.getElementById('receiver_name').value = data.receiver_name;
-                    document.getElementById('origin').value = data.origin;
-                    document.getElementById('destination').value = data.destination;
-                    document.getElementById('weight').value = data.weight;
-                    document.getElementById('length').value = data.length;
-                    document.getElementById('width').value = data.width;
-                    document.getElementById('height').value = data.height;
-                    document.getElementById('warehouse_id').value = data.warehouse_id;
-                    document.getElementById('package_status').value = data.package_status;
-                    document.getElementById('packageModalTitle').textContent = 'Edit Package';
-                    document.getElementById('packageSubmitBtn').textContent = 'Update';
-                    document.getElementById('packageModal').classList.remove('hidden');
+                    
+                    if (!data || typeof data !== 'object') {
+                        alert('Error: Invalid data format from server. Got: ' + typeof data);
+                        console.error('Invalid data structure:', data);
+                        return;
+                    }
+                    
+                    // Safely assign values
+                    try {
+                        const packageIdField = document.getElementById('packageId');
+                        const trackingField = document.getElementById('tracking_number');
+                        const senderField = document.getElementById('sender_name');
+                        const receiverField = document.getElementById('receiver_name');
+                        const originField = document.getElementById('origin');
+                        const destField = document.getElementById('destination');
+                        const weightField = document.getElementById('weight');
+                        const lengthField = document.getElementById('length');
+                        const widthField = document.getElementById('width');
+                        const heightField = document.getElementById('height');
+                        const warehouseField = document.getElementById('warehouse_id');
+                        const statusField = document.getElementById('package_status');
+                        
+                        if (!packageIdField || !trackingField || !senderField || !receiverField || 
+                            !originField || !destField || !weightField || !lengthField || 
+                            !widthField || !heightField || !warehouseField || !statusField) {
+                            alert('Error: Some form fields not found');
+                            console.error('Missing form fields');
+                            return;
+                        }
+                        
+                        packageIdField.value = data.id || id;
+                        trackingField.value = data.tracking_number || '';
+                        senderField.value = data.sender_name || '';
+                        receiverField.value = data.receiver_name || '';
+                        originField.value = data.origin || '';
+                        destField.value = data.destination || '';
+                        weightField.value = data.weight || '';
+                        lengthField.value = data.length || '';
+                        widthField.value = data.width || '';
+                        heightField.value = data.height || '';
+                        warehouseField.value = data.warehouse_id || '';
+                        statusField.value = data.package_status || 'registered';
+                        
+                        document.getElementById('packageModalTitle').textContent = 'Edit Package';
+                        document.getElementById('packageSubmitBtn').textContent = 'Update';
+                        document.getElementById('packageModal').classList.remove('hidden');
+                        
+                        console.log('Form populated successfully');
+                    } catch (e) {
+                        alert('Error populating form: ' + e.message);
+                        console.error('Form population error:', e);
+                    }
                 })
-                .catch(error => alert('Error loading package'));
+                .catch(error => {
+                    console.error('Axios error:', error);
+                    let errorMsg = 'Failed to load package';
+                    
+                    if (error.response) {
+                        errorMsg = error.response.data?.message || error.response.statusText || errorMsg;
+                        console.error('Response status:', error.response.status);
+                        console.error('Response data:', error.response.data);
+                    } else if (error.request) {
+                        errorMsg = 'No response from server';
+                        console.error('No response:', error.request);
+                    } else {
+                        errorMsg = error.message;
+                    }
+                    
+                    alert('Error: ' + errorMsg);
+                });
         }
 
         function savePackage(e) {
             e.preventDefault();
+            
             const id = document.getElementById('packageId').value;
+            const tracking_number = document.getElementById('tracking_number').value;
+            const sender_name = document.getElementById('sender_name').value;
+            const receiver_name = document.getElementById('receiver_name').value;
+            const origin = document.getElementById('origin').value;
+            const destination = document.getElementById('destination').value;
+            const weight = document.getElementById('weight').value;
+            const length = document.getElementById('length').value;
+            const width = document.getElementById('width').value;
+            const height = document.getElementById('height').value;
+            const warehouse_id = document.getElementById('warehouse_id').value;
+            const package_status = document.getElementById('package_status').value;
+            
+            // Validation
+            if (!tracking_number.trim()) {
+                alert('Tracking number is required');
+                return;
+            }
+            if (!sender_name.trim()) {
+                alert('Sender name is required');
+                return;
+            }
+            if (!receiver_name.trim()) {
+                alert('Receiver name is required');
+                return;
+            }
+            if (!origin.trim()) {
+                alert('Origin is required');
+                return;
+            }
+            if (!destination.trim()) {
+                alert('Destination is required');
+                return;
+            }
+            if (!weight || weight <= 0) {
+                alert('Weight must be greater than 0');
+                return;
+            }
+            if (!length || length <= 0 || !width || width <= 0 || !height || height <= 0) {
+                alert('All dimensions (length, width, height) must be greater than 0');
+                return;
+            }
+            if (!warehouse_id) {
+                alert('Please select a warehouse');
+                return;
+            }
+            
             const data = {
-                tracking_number: document.getElementById('tracking_number').value,
-                sender_name: document.getElementById('sender_name').value,
-                receiver_name: document.getElementById('receiver_name').value,
-                origin: document.getElementById('origin').value,
-                destination: document.getElementById('destination').value,
-                weight: document.getElementById('weight').value,
-                length: document.getElementById('length').value,
-                width: document.getElementById('width').value,
-                height: document.getElementById('height').value,
-                warehouse_id: document.getElementById('warehouse_id').value,
-                package_status: document.getElementById('package_status').value
+                tracking_number: tracking_number.trim(),
+                sender_name: sender_name.trim(),
+                receiver_name: receiver_name.trim(),
+                origin: origin.trim(),
+                destination: destination.trim(),
+                weight: parseFloat(weight),
+                length: parseFloat(length),
+                width: parseFloat(width),
+                height: parseFloat(height),
+                warehouse_id: parseInt(warehouse_id),
+                package_status: package_status
             };
 
             const method = id ? 'put' : 'post';
@@ -600,12 +809,17 @@
 
             axios[method](url, data)
                 .then(response => {
-                    alert('Package saved successfully!');
-                    location.reload();
+                    if (response.data?.success) {
+                        alert('Package saved successfully!');
+                        location.reload();
+                    } else {
+                        alert('Error: ' + (response.data?.message || 'Unknown error occurred'));
+                    }
                 })
                 .catch(error => {
-                    console.error(error);
-                    alert('Error: ' + (error.response?.data?.message || 'Failed to save package'));
+                    console.error('Error saving package:', error);
+                    const errorMsg = error.response?.data?.message || error.message || 'Failed to save package';
+                    alert('Error: ' + errorMsg);
                 });
         }
 

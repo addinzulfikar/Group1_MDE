@@ -63,18 +63,25 @@ class WarehouseController extends Controller
         try {
             $warehouse = Warehouse::with('packages')->findOrFail($id);
 
+            // Convert to array for response
+            $warehouseData = $warehouse->toArray();
+            
+            // Ensure 'id' exists
+            if (!isset($warehouseData['id'])) {
+                $warehouseData['id'] = $warehouse->id;
+            }
+
             // Calculate warehouse usage percentage
             $usagePercentage = $warehouse->capacity > 0 
                 ? round(($warehouse->current_load / $warehouse->capacity) * 100, 2) 
                 : 0;
 
+            $warehouseData['usage_percentage'] = $usagePercentage;
+
             return response()->json([
                 'success' => true,
                 'message' => 'Warehouse retrieved successfully',
-                'data' => [
-                    ...$warehouse->toArray(),
-                    'usage_percentage' => $usagePercentage
-                ]
+                'data' => $warehouseData
             ], 200);
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             return response()->json([

@@ -80,13 +80,20 @@ class PackageController extends Controller
         try {
             $package = Package::with('warehouse')->findOrFail($id);
 
+            // Convert to array for response
+            $packageData = $package->toArray();
+            
+            // Ensure 'id' exists
+            if (!isset($packageData['id'])) {
+                $packageData['id'] = $package->id;
+            }
+
+            $packageData['dimension_category'] = $package->getDimensionCategory();
+
             return response()->json([
                 'success' => true,
                 'message' => 'Package retrieved successfully',
-                'data' => [
-                    ...$package->toArray(),
-                    'dimension_category' => $package->getDimensionCategory()
-                ]
+                'data' => $packageData
             ], 200);
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             return response()->json([

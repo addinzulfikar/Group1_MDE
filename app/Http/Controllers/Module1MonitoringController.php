@@ -2,34 +2,59 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Warehouse;
-use App\Models\Package;
+use App\Repositories\Contracts\WarehouseRepositoryInterface;
+use App\Repositories\Contracts\PackageRepositoryInterface;
 
 class Module1MonitoringController extends Controller
 {
+    private WarehouseRepositoryInterface $warehouseRepository;
+    private PackageRepositoryInterface $packageRepository;
+
+    /**
+     * Constructor initialization with dependency injection
+     * 
+     * @param WarehouseRepositoryInterface $warehouseRepository
+     * @param PackageRepositoryInterface $packageRepository
+     */
+    public function __construct(
+        WarehouseRepositoryInterface $warehouseRepository,
+        PackageRepositoryInterface $packageRepository
+    ) {
+        $this->warehouseRepository = $warehouseRepository;
+        $this->packageRepository = $packageRepository;
+    }
+
     /**
      * Display the monitoring dashboard for Module 1.
      */
     public function index()
     {
         try {
-            // Get all warehouses with relationship
-            $warehouses = Warehouse::with('packages')->get();
+            // Get warehouse and package statistics from repositories
+            $warehouseStats = $this->warehouseRepository->getStatistics();
+            $packageStats = $this->packageRepository->getStatistics();
 
-            // Get all packages with relationship
-            $packages = Package::with('warehouse')->get();
+            // Get all warehouses with usage percentages
+            $warehouses = $this->warehouseRepository->getAllWarehouses();
+            $warehouseUsage = $warehouses->map(function ($warehouse) {
+                $usagePercentage = $this->warehouseRepository->calculateUsagePercentage($warehouse->id);
 
-            // Calculate warehouse statistics
-            $totalWarehouses = $warehouses->count();
-            $activeWarehouses = $warehouses->where('status', 'active')->count();
-            $totalCapacity = $warehouses->sum('capacity');
-            $totalCurrentLoad = $warehouses->sum('current_load');
+                return [
+                    'id' => $warehouse->id,
+                    'warehouse_code' => $warehouse->warehouse_code,
+                    'warehouse_name' => $warehouse->warehouse_name,
+                    'location' => $warehouse->location,
+                    'capacity' => $warehouse->capacity,
+                    'current_load' => $warehouse->current_load,
+                    'usage_percentage' => $usagePercentage,
+                    'status' => $warehouse->status,
+                    'package_count' => $warehouse->packages->count(),
+                    'created_at' => $warehouse->created_at->format('Y-m-d H:i:s')
+                ];
+            });
 
-            // Calculate package statistics
-            $totalPackages = $packages->count();
-            $packagesByStatus = $packages->groupBy('package_status')->map->count();
-
-            // Calculate package statistics by dimension category
+            // Get all packages with dimension categories
+            $packages = $this->packageRepository->getAllPackages();
             $packagesByDimension = $packages->map(function ($package) {
                 return [
                     'id' => $package->id,
@@ -47,42 +72,25 @@ class Module1MonitoringController extends Controller
                 ];
             });
 
-            $dimensionCategories = $packagesByDimension->groupBy('dimension_category')->map->count();
-
-            // Calculate warehouse usage percentage
-            $warehouseUsage = $warehouses->map(function ($warehouse) {
-                $usagePercentage = $warehouse->capacity > 0 
-                    ? round(($warehouse->current_load / $warehouse->capacity) * 100, 2) 
-                    : 0;
-
-                return [
-                    'id' => $warehouse->id,
-                    'warehouse_code' => $warehouse->warehouse_code,
-                    'warehouse_name' => $warehouse->warehouse_name,
-                    'location' => $warehouse->location,
-                    'capacity' => $warehouse->capacity,
-                    'current_load' => $warehouse->current_load,
-                    'usage_percentage' => $usagePercentage,
-                    'status' => $warehouse->status,
-                    'package_count' => $warehouse->packages->count(),
-                    'created_at' => $warehouse->created_at->format('Y-m-d H:i:s')
-                ];
-            });
+            // Get packages grouped by category
+            $packagesByCategory = $this->packageRepository->getPackagesByCategory();
+            $dimensionCategories = [
+                'small' => $packageStats['small_packages'],
+                'medium' => $packageStats['medium_packages'],
+                'large' => $packageStats['large_packages'],
+            ];
 
             // Prepare data for view
             $data = [
                 // Warehouse Statistics
-                'total_warehouses' => $totalWarehouses,
-                'active_warehouses' => $activeWarehouses,
-                'total_capacity' => number_format($totalCapacity, 0),
-                'total_current_load' => number_format($totalCurrentLoad, 0),
-                'overall_usage_percentage' => $totalCapacity > 0 
-                    ? round(($totalCurrentLoad / $totalCapacity) * 100, 2) 
-                    : 0,
+                'total_warehouses' => $warehouseStats['total_warehouses'],
+                'active_warehouses' => $warehouseStats['active_warehouses'],
+                'total_capacity' => number_format($warehouseStats['total_capacity'], 0),
+                'total_current_load' => number_format($warehouseStats['total_current_load'], 0),
+                'overall_usage_percentage' => $warehouseStats['total_usage_percentage'],
 
                 // Package Statistics
-                'total_packages' => $totalPackages,
-                'packages_by_status' => $packagesByStatus,
+                'total_packages' => $packageStats['total_packages'],
                 'packages_by_dimension' => $dimensionCategories,
 
                 // Data Lists

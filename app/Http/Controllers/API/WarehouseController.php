@@ -5,18 +5,30 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreWarehouseRequest;
 use App\Http\Requests\UpdateWarehouseRequest;
-use App\Models\Warehouse;
+use App\Repositories\Contracts\WarehouseRepositoryInterface;
 use Illuminate\Http\Request;
 
 class WarehouseController extends Controller
 {
+    private WarehouseRepositoryInterface $warehouseRepository;
+
+    /**
+     * Constructor initialization with dependency injection
+     * 
+     * @param WarehouseRepositoryInterface $warehouseRepository
+     */
+    public function __construct(WarehouseRepositoryInterface $warehouseRepository)
+    {
+        $this->warehouseRepository = $warehouseRepository;
+    }
+
     /**
      * Display a listing of all warehouses.
      */
     public function index()
     {
         try {
-            $warehouses = Warehouse::with('packages')->get();
+            $warehouses = $this->warehouseRepository->getAllWarehouses();
 
             return response()->json([
                 'success' => true,
@@ -39,7 +51,7 @@ class WarehouseController extends Controller
     public function store(StoreWarehouseRequest $request)
     {
         try {
-            $warehouse = Warehouse::create($request->validated());
+            $warehouse = $this->warehouseRepository->createWarehouse($request->validated());
 
             return response()->json([
                 'success' => true,
@@ -61,7 +73,7 @@ class WarehouseController extends Controller
     public function show($id)
     {
         try {
-            $warehouse = Warehouse::with('packages')->findOrFail($id);
+            $warehouse = $this->warehouseRepository->getWarehouseById($id);
 
             // Convert to array for response
             $warehouseData = $warehouse->toArray();
@@ -71,11 +83,8 @@ class WarehouseController extends Controller
                 $warehouseData['id'] = $warehouse->id;
             }
 
-            // Calculate warehouse usage percentage
-            $usagePercentage = $warehouse->capacity > 0 
-                ? round(($warehouse->current_load / $warehouse->capacity) * 100, 2) 
-                : 0;
-
+            // Calculate warehouse usage percentage using repository method
+            $usagePercentage = $this->warehouseRepository->calculateUsagePercentage($warehouse->id);
             $warehouseData['usage_percentage'] = $usagePercentage;
 
             return response()->json([
@@ -109,12 +118,7 @@ class WarehouseController extends Controller
     public function update(UpdateWarehouseRequest $request, $id)
     {
         try {
-            $warehouse = Warehouse::findOrFail($id);
-
-            $warehouse->update($request->validated());
-            
-            // Refresh warehouse data
-            $warehouse->refresh();
+            $warehouse = $this->warehouseRepository->updateWarehouse($id, $request->validated());
             
             // Convert to array for response
             $warehouseData = $warehouse->toArray();
@@ -124,10 +128,8 @@ class WarehouseController extends Controller
                 $warehouseData['id'] = $warehouse->id;
             }
             
-            // Calculate usage percentage
-            $usagePercentage = $warehouse->capacity > 0 
-                ? round(($warehouse->current_load / $warehouse->capacity) * 100, 2) 
-                : 0;
+            // Calculate usage percentage using repository method
+            $usagePercentage = $this->warehouseRepository->calculateUsagePercentage($warehouse->id);
             $warehouseData['usage_percentage'] = $usagePercentage;
 
             return response()->json([
@@ -161,23 +163,20 @@ class WarehouseController extends Controller
     public function destroy($id)
     {
         try {
-            $warehouse = Warehouse::findOrFail($id);
-
-            // Check if warehouse has packages
-            if ($warehouse->packages()->exists()) {
+            // Check if warehouse has packages using repository method
+            if ($this->warehouseRepository->hasPackages($id)) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Cannot delete warehouse',
-                    'error' => 'Warehouse has ' . $warehouse->packages()->count() . ' packages. Please remove all packages first.'
+                    'error' => 'Warehouse still has packages. Please remove all packages first.'
                 ], 422);
             }
 
-            $warehouse->delete();
+            $this->warehouseRepository->deleteWarehouse($id);
 
             return response()->json([
                 'success' => true,
-                'message' => 'Warehouse deleted successfully',
-                'data' => $warehouse
+                'message' => 'Warehouse deleted successfully'
             ], 200);
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             return response()->json([

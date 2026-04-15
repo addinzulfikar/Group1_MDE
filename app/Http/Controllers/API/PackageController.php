@@ -5,18 +5,30 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StorePackageRequest;
 use App\Http\Requests\UpdatePackageRequest;
-use App\Models\Package;
+use App\Repositories\Contracts\PackageRepositoryInterface;
 use Illuminate\Http\Request;
 
 class PackageController extends Controller
 {
+    private PackageRepositoryInterface $packageRepository;
+
+    /**
+     * Constructor initialization with dependency injection
+     * 
+     * @param PackageRepositoryInterface $packageRepository
+     */
+    public function __construct(PackageRepositoryInterface $packageRepository)
+    {
+        $this->packageRepository = $packageRepository;
+    }
+
     /**
      * Display a listing of all packages.
      */
     public function index()
     {
         try {
-            $packages = Package::with('warehouse')->get();
+            $packages = $this->packageRepository->getAllPackages();
 
             // Add dimension category to each package
             $packages = $packages->map(function ($package) {
@@ -47,13 +59,7 @@ class PackageController extends Controller
     public function store(StorePackageRequest $request)
     {
         try {
-            // Auto calculate volume: length × width × height
-            $volume = $request->length * $request->width * $request->height;
-
-            $package = Package::create([
-                ...$request->validated(),
-                'volume' => $volume
-            ]);
+            $package = $this->packageRepository->createPackage($request->validated());
 
             // Convert to array for response
             $packageData = $package->toArray();
@@ -89,7 +95,7 @@ class PackageController extends Controller
     public function show($id)
     {
         try {
-            $package = Package::with('warehouse')->findOrFail($id);
+            $package = $this->packageRepository->getPackageById($id);
 
             // Convert to array for response
             $packageData = $package->toArray();
@@ -132,22 +138,7 @@ class PackageController extends Controller
     public function update(UpdatePackageRequest $request, $id)
     {
         try {
-            $package = Package::findOrFail($id);
-
-            $data = $request->validated();
-
-            // Recalculate volume if any dimension is updated
-            if ($request->has('length') || $request->has('width') || $request->has('height')) {
-                $length = $data['length'] ?? $package->length ?? 0;
-                $width = $data['width'] ?? $package->width ?? 0;
-                $height = $data['height'] ?? $package->height ?? 0;
-                $data['volume'] = $length * $width * $height;
-            }
-
-            $package->update($data);
-            
-            // Refresh package data
-            $package->refresh();
+            $package = $this->packageRepository->updatePackage($id, $request->validated());
             
             // Convert to array for response
             $packageData = $package->toArray();
@@ -190,14 +181,11 @@ class PackageController extends Controller
     public function destroy($id)
     {
         try {
-            $package = Package::findOrFail($id);
-
-            $package->delete();
+            $this->packageRepository->deletePackage($id);
 
             return response()->json([
                 'success' => true,
-                'message' => 'Package deleted successfully',
-                'data' => $package
+                'message' => 'Package deleted successfully'
             ], 200);
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             return response()->json([
@@ -220,7 +208,7 @@ class PackageController extends Controller
     public function getDimension($id)
     {
         try {
-            $package = Package::findOrFail($id);
+            $package = $this->packageRepository->getPackageById($id);
 
             $dimensionCategory = $package->getDimensionCategory();
 

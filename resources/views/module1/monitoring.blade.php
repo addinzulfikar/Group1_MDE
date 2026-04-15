@@ -344,16 +344,39 @@
                             <label for="warehouse_location" class="form-label">Location</label>
                             <input type="text" class="form-control" id="warehouse_location" required>
                         </div>
-                        <div class="mb-3">
-                            <label for="warehouse_capacity" class="form-label">Capacity</label>
-                            <input type="number" class="form-control" id="warehouse_capacity" required>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="warehouse_capacity" class="form-label">Capacity (Unit)</label>
+                                    <input type="number" class="form-control" id="warehouse_capacity" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="warehouse_current_load" class="form-label">Current Load (Unit)</label>
+                                    <input type="number" class="form-control" id="warehouse_current_load" required min="0">
+                                </div>
+                            </div>
                         </div>
-                        <div class="mb-3">
-                            <label for="warehouse_status" class="form-label">Status</label>
-                            <select class="form-select" id="warehouse_status">
-                                <option value="active">Active</option>
-                                <option value="inactive">Inactive</option>
-                            </select>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="warehouse_usage" class="form-label">Usage %</label>
+                                    <div class="input-group">
+                                        <input type="text" class="form-control" id="warehouse_usage" readonly>
+                                        <span class="input-group-text">%</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="warehouse_status" class="form-label">Status</label>
+                                    <select class="form-select" id="warehouse_status">
+                                        <option value="active">Active</option>
+                                        <option value="inactive">Inactive</option>
+                                    </select>
+                                </div>
+                            </div>
                         </div>
                     </div>
                     <div class="modal-footer">
@@ -461,10 +484,22 @@
         function openWarehouseModal() {
             document.getElementById('warehouseId').value = '';
             document.getElementById('warehouseForm').reset();
+            document.getElementById('warehouse_usage').value = 0;
             document.getElementById('warehouseModalTitle').textContent = 'Add Warehouse';
             document.getElementById('warehouseSubmitBtn').textContent = 'Save';
             warehouseModal.show();
         }
+
+        function calculateUsagePercentage() {
+            const capacity = parseFloat(document.getElementById('warehouse_capacity').value) || 0;
+            const current_load = parseFloat(document.getElementById('warehouse_current_load').value) || 0;
+            const usagePercentage = capacity > 0 ? ((current_load / capacity) * 100).toFixed(2) : 0;
+            document.getElementById('warehouse_usage').value = usagePercentage;
+        }
+
+        // Add event listeners to update usage percentage
+        document.getElementById('warehouse_capacity').addEventListener('input', calculateUsagePercentage);
+        document.getElementById('warehouse_current_load').addEventListener('input', calculateUsagePercentage);
 
         function closeWarehouseModal() {
             warehouseModal.hide();
@@ -501,6 +536,8 @@
                         document.getElementById('warehouse_name').value = data.warehouse_name || '';
                         document.getElementById('warehouse_location').value = data.location || '';
                         document.getElementById('warehouse_capacity').value = data.capacity || '';
+                        document.getElementById('warehouse_current_load').value = data.current_load || 0;
+                        document.getElementById('warehouse_usage').value = data.usage_percentage || 0;
                         document.getElementById('warehouse_status').value = data.status || 'active';
                         
                         document.getElementById('warehouseModalTitle').textContent = 'Edit Warehouse';
@@ -533,10 +570,16 @@
             const warehouse_name = document.getElementById('warehouse_name').value;
             const warehouseLocation = document.getElementById('warehouse_location').value;
             const capacity = document.getElementById('warehouse_capacity').value;
+            const current_load = document.getElementById('warehouse_current_load').value;
             const status = document.getElementById('warehouse_status').value;
             
-            if (!warehouse_code.trim() || !warehouse_name.trim() || !warehouseLocation.trim() || !capacity || capacity <= 0) {
-                alert('Please fill all required fields correctly');
+            if (!warehouse_code.trim() || !warehouse_name.trim() || !warehouseLocation.trim() || !capacity || capacity <= 0 || current_load === '' || current_load < 0) {
+                alert('Please fill all required fields correctly. Current Load cannot be negative.');
+                return;
+            }
+            
+            if (parseInt(current_load) > parseInt(capacity)) {
+                alert('Current Load cannot exceed Capacity');
                 return;
             }
             
@@ -545,6 +588,7 @@
                 warehouse_name: warehouse_name.trim(),
                 location: warehouseLocation.trim(),
                 capacity: parseInt(capacity),
+                current_load: parseInt(current_load),
                 status: status
             };
 

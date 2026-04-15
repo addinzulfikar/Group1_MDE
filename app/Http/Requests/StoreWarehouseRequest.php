@@ -26,6 +26,7 @@ class StoreWarehouseRequest extends FormRequest
             'warehouse_name' => 'required|string|max:100',
             'location' => 'required|string|max:255',
             'capacity' => 'required|integer|min:1',
+            'current_load' => 'nullable|integer|min:0',
             'status' => 'nullable|in:active,inactive',
         ];
     }
@@ -43,6 +44,8 @@ class StoreWarehouseRequest extends FormRequest
             'capacity.required' => 'Kapasitas gudang harus diisi',
             'capacity.integer' => 'Kapasitas harus berupa angka',
             'capacity.min' => 'Kapasitas minimal 1 unit',
+            'current_load.integer' => 'Beban saat ini harus berupa angka',
+            'current_load.min' => 'Beban saat ini tidak bisa negatif',
         ];
     }
 }

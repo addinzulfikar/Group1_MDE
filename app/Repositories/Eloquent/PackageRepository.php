@@ -3,6 +3,7 @@
 namespace App\Repositories\Eloquent;
 
 use App\Models\Package;
+use App\Models\Warehouse;
 use App\Repositories\Contracts\PackageRepositoryInterface;
 
 class PackageRepository implements PackageRepositoryInterface
@@ -54,12 +55,18 @@ class PackageRepository implements PackageRepositoryInterface
             );
         }
 
-        return Package::create($data);
+        $package = Package::create($data);
+
+        // Sinkronisasi current_load & status warehouse berdasarkan jumlah paket
+        $this->syncWarehouseLoad($package->warehouse_id);
+
+        return $package;
     }
 
     public function updatePackage($id, $data)
     {
         $package = Package::findOrFail($id);
+        $oldWarehouseId = $package->warehouse_id;
 
         if (isset($data['length'], $data['width'], $data['height'])) {
             $data['volume'] = $this->calculateVolume(
@@ -70,13 +77,41 @@ class PackageRepository implements PackageRepositoryInterface
         }
 
         $package->update($data);
-        return $package->refresh();
+        $package->refresh();
+
+        // Sync warehouse lama (jika pindah warehouse)
+        if ($oldWarehouseId !== $package->warehouse_id) {
+            $this->syncWarehouseLoad($oldWarehouseId);
+        }
+        // Sync warehouse baru
+        $this->syncWarehouseLoad($package->warehouse_id);
+
+        return $package;
     }
 
     public function deletePackage($id)
     {
         $package = Package::findOrFail($id);
-        return $package->delete();
+        $warehouseId = $package->warehouse_id;
+        $result = $package->delete();
+
+        // Sinkronisasi current_load & status warehouse setelah hapus paket
+        $this->syncWarehouseLoad($warehouseId);
+
+        return $result;
+    }
+
+    /**
+     * Sinkronisasi current_load dan status warehouse berdasarkan jumlah paket.
+     * current_load = COUNT(packages WHERE warehouse_id = ?)
+     * status = ditentukan oleh Warehouse::resolveStatus()
+     */
+    private function syncWarehouseLoad(int $warehouseId): void
+    {
+        $warehouse = Warehouse::find($warehouseId);
+        if ($warehouse) {
+            $warehouse->recalculateLoad();
+        }
     }
 
     public function getPackagesByWarehouse($warehouseId)

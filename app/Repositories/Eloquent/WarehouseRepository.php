@@ -60,7 +60,9 @@ class WarehouseRepository implements WarehouseRepositoryInterface
         $warehouses = Warehouse::with('packages')->get();
 
         $totalWarehouses = $warehouses->count();
-        $activeWarehouses = $warehouses->where('status', 'active')->count();
+        $availableWarehouses = $warehouses->where('status', 'available')->count();
+        $fullWarehouses = $warehouses->where('status', 'full')->count();
+        $overloadWarehouses = $warehouses->where('status', 'overload')->count();
         $totalPackages = $warehouses->sum(function ($w) {
             return $w->packages->count();
         });
@@ -69,13 +71,16 @@ class WarehouseRepository implements WarehouseRepositoryInterface
 
         return [
             'total_warehouses' => $totalWarehouses,
-            'active_warehouses' => $activeWarehouses,
-            'inactive_warehouses' => $totalWarehouses - $activeWarehouses,
+            'available_warehouses' => $availableWarehouses,
+            'full_warehouses' => $fullWarehouses,
+            'overload_warehouses' => $overloadWarehouses,
+            // Backward-compat alias untuk view yang masih pakai 'active_warehouses'
+            'active_warehouses' => $availableWarehouses,
             'total_packages' => $totalPackages,
             'total_capacity' => $totalCapacity,
             'total_current_load' => $totalCurrentLoad,
-            'total_usage_percentage' => $totalCapacity > 0 
-                ? round(($totalCurrentLoad / $totalCapacity) * 100, 2) 
+            'total_usage_percentage' => $totalCapacity > 0
+                ? round(($totalCurrentLoad / $totalCapacity) * 100, 2)
                 : 0,
         ];
     }

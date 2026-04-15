@@ -15,11 +15,13 @@ class DatabaseSeeder extends Seeder
     {
         $faker = \Faker\Factory::create('id_ID');
 
-        // Disable mass assignment checks and clear old data for fresh re-seed
+        // Disable foreign key checks and clear old data for fresh re-seed
         \Illuminate\Support\Facades\DB::statement('SET FOREIGN_KEY_CHECKS=0;');
         \Illuminate\Support\Facades\DB::table('fleet_logs')->truncate();
         \Illuminate\Support\Facades\DB::table('fleets')->truncate();
         \Illuminate\Support\Facades\DB::table('hubs')->truncate();
+        \Illuminate\Support\Facades\DB::table('packages')->truncate();
+        \Illuminate\Support\Facades\DB::table('warehouses')->truncate();
         \Illuminate\Support\Facades\DB::statement('SET FOREIGN_KEY_CHECKS=1;');
 
         $this->command->info('Creating 50 Hubs...');
@@ -91,5 +93,12 @@ class DatabaseSeeder extends Seeder
         }
 
         $this->command->info('✅ Seeding Modul 4 (5,000 Dummy Data) Completed Successfully!');
+
+        // Module 1 Seeding
+        $this->command->info('Creating Module 1 (Warehouse & Package) Data...');
+        $this->call(WarehouseSeeder::class);
+        $this->command->info('✅ Seeding Module 1 (50 Warehouses) Completed Successfully!');
+        $this->call(PackageSeeder::class);
+        $this->command->info('✅ Seeding Module 1 (100 Packages) Completed Successfully!');
     }
 }

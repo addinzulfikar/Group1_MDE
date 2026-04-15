@@ -40,16 +40,15 @@ class Module1MonitoringController extends Controller
                 $usagePercentage = $this->warehouseRepository->calculateUsagePercentage($warehouse->id);
 
                 return [
-                    'id' => $warehouse->id,
-                    'warehouse_code' => $warehouse->warehouse_code,
-                    'warehouse_name' => $warehouse->warehouse_name,
-                    'location' => $warehouse->location,
-                    'capacity' => $warehouse->capacity,
-                    'current_load' => $warehouse->current_load,
+                    'id'               => $warehouse->id,
+                    'warehouse_name'   => $warehouse->warehouse_name,
+                    'location'         => $warehouse->location,
+                    'capacity'         => $warehouse->capacity,
+                    'current_load'     => $warehouse->current_load,
                     'usage_percentage' => $usagePercentage,
-                    'status' => $warehouse->status,
-                    'package_count' => $warehouse->packages->count(),
-                    'created_at' => $warehouse->created_at->format('Y-m-d H:i:s')
+                    'status'           => $warehouse->status,
+                    'package_count'    => $warehouse->packages->count(),
+                    'created_at'       => $warehouse->created_at->format('Y-m-d H:i:s'),
                 ];
             });
 
@@ -83,23 +82,25 @@ class Module1MonitoringController extends Controller
             // Prepare data for view
             $data = [
                 // Warehouse Statistics
-                'total_warehouses' => $warehouseStats['total_warehouses'],
-                'active_warehouses' => $warehouseStats['active_warehouses'],
-                'total_capacity' => number_format($warehouseStats['total_capacity'], 0),
-                'total_current_load' => number_format($warehouseStats['total_current_load'], 0),
+                'total_warehouses'       => $warehouseStats['total_warehouses'],
+                'available_warehouses'   => $warehouseStats['available_warehouses'],
+                'full_warehouses'        => $warehouseStats['full_warehouses'],
+                'overload_warehouses'    => $warehouseStats['overload_warehouses'],
+                'total_capacity'         => number_format($warehouseStats['total_capacity'], 0),
+                'total_current_load'     => number_format($warehouseStats['total_current_load'], 0),
                 'overall_usage_percentage' => $warehouseStats['total_usage_percentage'],
 
                 // Package Statistics
-                'total_packages' => $packageStats['total_packages'],
-                'packages_by_dimension' => $dimensionCategories,
+                'total_packages'         => $packageStats['total_packages'],
+                'packages_by_dimension'  => $dimensionCategories,
 
                 // Data Lists
-                'warehouses' => $warehouseUsage,
-                'packages' => $packagesByDimension,
+                'warehouses'             => $warehouseUsage,
+                'packages'               => $packagesByDimension,
 
-                // Chart data (for future enhancement)
-                'warehouse_codes' => $warehouseUsage->pluck('warehouse_code')->toArray(),
-                'warehouse_loads' => $warehouseUsage->pluck('current_load')->toArray(),
+                // Chart data
+                'warehouse_names'        => $warehouseUsage->pluck('warehouse_name')->toArray(),
+                'warehouse_loads'        => $warehouseUsage->pluck('current_load')->toArray(),
             ];
 
             return view('module1.monitoring', $data);

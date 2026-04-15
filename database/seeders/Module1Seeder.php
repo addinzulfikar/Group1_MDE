@@ -16,90 +16,76 @@ class Module1Seeder extends Seeder
         // Create Warehouses (10 warehouses)
         $warehouses = [
             [
-                'warehouse_code' => 'WH-001',
                 'warehouse_name' => 'Jakarta Central Hub',
                 'location' => 'Jakarta Pusat',
                 'capacity' => 10000,
-                'current_load' => 6500,
-                'status' => 'active'
+                'status' => 'available'
             ],
             [
-                'warehouse_code' => 'WH-002',
                 'warehouse_name' => 'Surabaya Distribution',
                 'location' => 'Surabaya, Jawa Timur',
                 'capacity' => 8000,
-                'current_load' => 5200,
-                'status' => 'active'
+                'status' => 'available'
             ],
             [
-                'warehouse_code' => 'WH-003',
                 'warehouse_name' => 'Bandung Depot',
                 'location' => 'Bandung, Jawa Barat',
                 'capacity' => 6000,
-                'current_load' => 3800,
-                'status' => 'active'
+                'status' => 'available'
             ],
             [
-                'warehouse_code' => 'WH-004',
                 'warehouse_name' => 'Medan Logistics',
                 'location' => 'Medan, Sumatera Utara',
                 'capacity' => 5000,
-                'current_load' => 2500,
-                'status' => 'active'
+                'status' => 'available'
             ],
             [
-                'warehouse_code' => 'WH-005',
                 'warehouse_name' => 'Makassar Port',
                 'location' => 'Makassar, Sulawesi Selatan',
                 'capacity' => 7000,
-                'current_load' => 4200,
-                'status' => 'active'
+                'status' => 'available'
             ],
             [
-                'warehouse_code' => 'WH-006',
                 'warehouse_name' => 'Palembang Hub',
                 'location' => 'Palembang, Sumatera Selatan',
                 'capacity' => 4500,
-                'current_load' => 2700,
-                'status' => 'active'
+                'status' => 'available'
             ],
             [
-                'warehouse_code' => 'WH-007',
                 'warehouse_name' => 'Semarang Center',
                 'location' => 'Semarang, Jawa Tengah',
                 'capacity' => 5500,
-                'current_load' => 3300,
-                'status' => 'inactive'
+                'status' => 'available'
             ],
             [
-                'warehouse_code' => 'WH-008',
                 'warehouse_name' => 'Yogyakarta Station',
                 'location' => 'Yogyakarta, DIY',
                 'capacity' => 3500,
-                'current_load' => 1800,
-                'status' => 'active'
+                'status' => 'available'
             ],
             [
-                'warehouse_code' => 'WH-009',
                 'warehouse_name' => 'Bali Gateway',
                 'location' => 'Denpasar, Bali',
                 'capacity' => 4000,
-                'current_load' => 2400,
-                'status' => 'active'
+                'status' => 'available'
             ],
             [
-                'warehouse_code' => 'WH-010',
                 'warehouse_name' => 'Pontianak Node',
                 'location' => 'Pontianak, Kalimantan Barat',
                 'capacity' => 3000,
-                'current_load' => 1500,
-                'status' => 'active'
+                'status' => 'available'
             ]
         ];
 
         $createdWarehouses = [];
-        foreach ($warehouses as $warehouse) {
-            $createdWarehouses[] = Warehouse::create($warehouse);
+        foreach ($warehouses as $warehouseData) {
+            $createdWarehouses[] = Warehouse::create([
+                'warehouse_name' => $warehouseData['warehouse_name'],
+                'location'       => $warehouseData['location'],
+                'capacity'       => $warehouseData['capacity'],
+                'current_load'   => 0,
+                'status'         => $warehouseData['status'],
+            ]);
         }
 
         // Create Packages (30 packages)

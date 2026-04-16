@@ -46,8 +46,8 @@ class ShipmentSeeder extends Seeder
 
             $status = fake()->randomElement(['pending', 'in_transit', 'in_hub', 'on_delivery', 'delivered', 'failed']);
             
-            // Generate unique tracking number
-            $trackingNumber = 'TRK' . substr(microtime(true) * 10000, -10) . random_int(1000, 9999);
+            // Generate unique tracking number using index + random to guarantee uniqueness
+            $trackingNumber = 'TRK' . str_pad($i, 8, '0', STR_PAD_LEFT) . strtoupper(substr(md5(uniqid($i, true)), 0, 4));
 
             $shipmentBatch[] = [
                 'tracking_number' => $trackingNumber,

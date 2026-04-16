@@ -1,21 +1,12 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Module 1 - Warehouse & Package Management System">
-    <title>Module 1 - Warehouse & Package Monitoring</title>
+@extends('layouts.app')
 
-    <!-- Bootstrap 5 CDN -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+@section('title', 'Modul 1 - Warehouse & Package Monitoring')
+@section('meta_description', 'Monitoring kapasitas warehouse dan manajemen paket masuk/keluar.')
+@section('active_nav', 'module1')
 
-    <!-- Font Awesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-
-    <!-- Axios -->
-    <script src="https://cdn.jsdelivr.net/npm/axios@1.6.2/dist/axios.min.js"></script>
-
-    <style>
+@push('styles')
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
         body { background-color: #f8f9fa; }
         .navbar-brand { font-weight: bold; font-size: 1.5rem; }
         .card { border: none; box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075); }
@@ -24,20 +15,10 @@
         .table-hover tbody tr:hover { background-color: #f5f5f5; }
         .modal-header { background-color: #007bff; color: white; }
     </style>
-</head>
-<body>
-    <!-- Navbar -->
-    <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm">
-        <div class="container-fluid">
-            <a class="navbar-brand" href="/">
-                <i class="fas fa-warehouse me-2"></i>Module 1 Monitoring
-            </a>
-            <span class="text-muted ms-auto">Warehouse &amp; Package Management System</span>
-        </div>
-    </nav>
+@endpush
 
-    <!-- Main Content -->
-    <main class="container-fluid py-4">
+@section('content')
+    <section class="container-fluid py-4">
         <!-- Error Message -->
         @if(isset($error))
             <div class="alert alert-danger alert-dismissible fade show" role="alert">
@@ -56,12 +37,8 @@
                             <div>
                                 <h6 class="text-muted text-uppercase fw-semibold mb-2">Total Warehouses</h6>
                                 <h2 class="text-primary fw-bold">{{ $total_warehouses }}</h2>
-                                <small>
-                                    <span class="text-success"><i class="fas fa-circle me-1" style="font-size:.6rem"></i>{{ $available_warehouses }} Available</span>
-                                    &nbsp;
-                                    <span class="text-warning"><i class="fas fa-circle me-1" style="font-size:.6rem"></i>{{ $full_warehouses }} Full</span>
-                                    &nbsp;
-                                    <span class="text-danger"><i class="fas fa-circle me-1" style="font-size:.6rem"></i>{{ $overload_warehouses }} Overload</span>
+                                <small class="text-success">
+                                    <i class="fas fa-check-circle me-1"></i>{{ $active_warehouses }} Active
                                 </small>
                             </div>
                             <i class="fas fa-warehouse card-icon text-primary"></i>
@@ -126,7 +103,7 @@
         </div>
 
         <!-- Dimension Categories -->
-        @if(isset($packages_by_dimension))
+        @if(count($packages_by_dimension) > 0)
             <div class="row mb-4">
                 <!-- Small Packages -->
                 <div class="col-md-4 mb-4">
@@ -136,7 +113,7 @@
                                 <div>
                                     <h6 class="text-muted fw-semibold mb-1">Small Packages</h6>
                                     <h3 class="text-primary fw-bold">{{ $packages_by_dimension['small'] ?? 0 }}</h3>
-                                    <small class="text-muted">Volume &le; 1000 cm&sup3;</small>
+                                    <small class="text-muted">Volume ≤ 1000 cm³</small>
                                 </div>
                                 <i class="fas fa-box card-icon text-primary"></i>
                             </div>
@@ -152,7 +129,7 @@
                                 <div>
                                     <h6 class="text-muted fw-semibold mb-1">Medium Packages</h6>
                                     <h3 class="text-success fw-bold">{{ $packages_by_dimension['medium'] ?? 0 }}</h3>
-                                    <small class="text-muted">Volume 1000 – 5000 cm&sup3;</small>
+                                    <small class="text-muted">Volume 1000 - 5000 cm³</small>
                                 </div>
                                 <i class="fas fa-boxes card-icon text-success"></i>
                             </div>
@@ -168,7 +145,7 @@
                                 <div>
                                     <h6 class="text-muted fw-semibold mb-1">Large Packages</h6>
                                     <h3 class="text-danger fw-bold">{{ $packages_by_dimension['large'] ?? 0 }}</h3>
-                                    <small class="text-muted">Volume &gt; 5000 cm&sup3;</small>
+                                    <small class="text-muted">Volume > 5000 cm³</small>
                                 </div>
                                 <i class="fas fa-cube card-icon text-danger"></i>
                             </div>
@@ -184,7 +161,7 @@
                 <h5 class="mb-0">
                     <i class="fas fa-list me-2"></i>Warehouse Management
                 </h5>
-                <button id="btn-add-warehouse" onclick="openWarehouseModal()" class="btn btn-primary btn-sm">
+                <button onclick="openWarehouseModal()" class="btn btn-primary btn-sm">
                     <i class="fas fa-plus me-2"></i>Add Warehouse
                 </button>
             </div>
@@ -192,8 +169,10 @@
                 <table class="table table-hover mb-0">
                     <thead class="table-light">
                         <tr>
+                            <th>Code</th>
                             <th>Name</th>
                             <th>Location</th>
+                            <th>Linked Hub</th>
                             <th>Capacity</th>
                             <th>Current Load</th>
                             <th>Usage %</th>
@@ -204,8 +183,10 @@
                     <tbody>
                         @forelse($warehouses as $warehouse)
                             <tr>
-                                <td class="fw-semibold">{{ $warehouse['warehouse_name'] }}</td>
+                                <td class="fw-semibold">{{ $warehouse['warehouse_code'] }}</td>
+                                <td>{{ $warehouse['warehouse_name'] }}</td>
                                 <td>{{ $warehouse['location'] }}</td>
+                                <td>{{ $warehouse['hub_name'] ?? '-' }}</td>
                                 <td>{{ number_format($warehouse['capacity'], 0) }}</td>
                                 <td>{{ number_format($warehouse['current_load'], 0) }}</td>
                                 <td>
@@ -227,17 +208,13 @@
                                     </div>
                                 </td>
                                 <td>
-                                    @if($warehouse['status'] === 'available')
+                                    @if($warehouse['status'] === 'active')
                                         <span class="badge bg-success">
-                                            <i class="fas fa-check-circle me-1"></i>Available
-                                        </span>
-                                    @elseif($warehouse['status'] === 'full')
-                                        <span class="badge bg-warning text-dark">
-                                            <i class="fas fa-exclamation-circle me-1"></i>Full
+                                            <i class="fas fa-check-circle me-1"></i>Active
                                         </span>
                                     @else
-                                        <span class="badge bg-danger">
-                                            <i class="fas fa-times-circle me-1"></i>Overload
+                                        <span class="badge bg-secondary">
+                                            <i class="fas fa-times-circle me-1"></i>Inactive
                                         </span>
                                     @endif
                                 </td>
@@ -252,7 +229,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="7" class="text-center text-muted py-4">No warehouses found</td>
+                                <td colspan="9" class="text-center text-muted py-4">No warehouses found</td>
                             </tr>
                         @endforelse
                     </tbody>
@@ -266,7 +243,7 @@
                 <h5 class="mb-0">
                     <i class="fas fa-list me-2"></i>Package Management
                 </h5>
-                <button id="btn-add-package" onclick="openPackageModal()" class="btn btn-success btn-sm">
+                <button onclick="openPackageModal()" class="btn btn-success btn-sm">
                     <i class="fas fa-plus me-2"></i>Register Package
                 </button>
             </div>
@@ -278,9 +255,8 @@
                             <th>Sender</th>
                             <th>Receiver</th>
                             <th>Weight (kg)</th>
-                            <th>Volume (cm&sup3;)</th>
+                            <th>Volume (cm³)</th>
                             <th>Category</th>
-                            <th>Warehouse</th>
                             <th>Status</th>
                             <th>Actions</th>
                         </tr>
@@ -306,7 +282,6 @@
                                     @endphp
                                     <span class="badge bg-{{ $badgeColor }}">{{ ucfirst($category) }}</span>
                                 </td>
-                                <td>{{ $package['warehouse_name'] }}</td>
                                 <td>
                                     <span class="badge bg-secondary">{{ ucfirst($package['status']) }}</span>
                                 </td>
@@ -321,14 +296,14 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="9" class="text-center text-muted py-4">No packages found</td>
+                                <td colspan="8" class="text-center text-muted py-4">No packages found</td>
                             </tr>
                         @endforelse
                     </tbody>
                 </table>
             </div>
         </div>
-    </main>
+    </section>
 
     <!-- Warehouse Modal -->
     <div class="modal fade" id="warehouseModal" tabindex="-1" aria-hidden="true">
@@ -342,6 +317,10 @@
                     <div class="modal-body">
                         <input type="hidden" id="warehouseId">
                         <div class="mb-3">
+                            <label for="warehouse_code" class="form-label">Warehouse Code</label>
+                            <input type="text" class="form-control" id="warehouse_code" required>
+                        </div>
+                        <div class="mb-3">
                             <label for="warehouse_name" class="form-label">Warehouse Name</label>
                             <input type="text" class="form-control" id="warehouse_name" required>
                         </div>
@@ -349,18 +328,26 @@
                             <label for="warehouse_location" class="form-label">Location</label>
                             <input type="text" class="form-control" id="warehouse_location" required>
                         </div>
+                        <div class="mb-3">
+                            <label for="warehouse_hub_id" class="form-label">Linked Hub</label>
+                            <select class="form-select" id="warehouse_hub_id">
+                                <option value="">- No Hub -</option>
+                                @foreach($all_hubs as $hub)
+                                    <option value="{{ $hub->id }}">{{ $hub->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label for="warehouse_capacity" class="form-label">Capacity (Unit)</label>
-                                    <input type="number" class="form-control" id="warehouse_capacity" required min="1">
+                                    <input type="number" class="form-control" id="warehouse_capacity" required>
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="mb-3">
-                                    <label for="warehouse_current_load" class="form-label">Current Load</label>
-                                    <input type="text" class="form-control" id="warehouse_current_load" readonly placeholder="Auto-calculated">
-                                    <div class="form-text"><i class="fas fa-info-circle me-1"></i>Calculated from package count</div>
+                                    <label for="warehouse_current_load" class="form-label">Current Load (Unit)</label>
+                                    <input type="number" class="form-control" id="warehouse_current_load" required min="0">
                                 </div>
                             </div>
                         </div>
@@ -378,9 +365,8 @@
                                 <div class="mb-3">
                                     <label for="warehouse_status" class="form-label">Status</label>
                                     <select class="form-select" id="warehouse_status">
-                                        <option value="available">Available</option>
-                                        <option value="full">Full</option>
-                                        <option value="overload">Overload</option>
+                                        <option value="active">Active</option>
+                                        <option value="inactive">Inactive</option>
                                     </select>
                                 </div>
                             </div>
@@ -414,9 +400,8 @@
                             <div class="col-md-6 mb-3">
                                 <label for="warehouse_id" class="form-label">Warehouse</label>
                                 <select class="form-select" id="warehouse_id" required>
-                                    <option value="">-- Select Warehouse --</option>
                                     @foreach($warehouses as $warehouse)
-                                        <option value="{{ $warehouse['id'] }}">{{ $warehouse['warehouse_name'] }} ({{ ucfirst($warehouse['status']) }})</option>
+                                        <option value="{{ $warehouse['id'] }}">{{ $warehouse['warehouse_code'] }} - {{ $warehouse['warehouse_name'] }}</option>
                                     @endforeach
                                 </select>
                             </div>
@@ -480,179 +465,290 @@
         </div>
     </div>
 
-    <!-- Bootstrap JS -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5/dist/js/bootstrap.bundle.min.js"></script>
-
+    @push('scripts')
+    <script src="https://cdn.jsdelivr.net/npm/axios@1.6.2/dist/axios.min.js"></script>
     <script>
-        const API_URL = '/api';
+        const API_URL = '/api/v1';
         const warehouseModal = new bootstrap.Modal(document.getElementById('warehouseModal'));
-        const packageModal   = new bootstrap.Modal(document.getElementById('packageModal'));
+        const packageModal = new bootstrap.Modal(document.getElementById('packageModal'));
 
-        /* ─── Warehouse Modal ─── */
+        // Warehouse Modal Functions
         function openWarehouseModal() {
             document.getElementById('warehouseId').value = '';
             document.getElementById('warehouseForm').reset();
-            document.getElementById('warehouse_usage').value = '';
-            document.getElementById('warehouse_current_load').value = '';
+            document.getElementById('warehouse_usage').value = 0;
             document.getElementById('warehouseModalTitle').textContent = 'Add Warehouse';
-            document.getElementById('warehouseSubmitBtn').textContent  = 'Save';
+            document.getElementById('warehouseSubmitBtn').textContent = 'Save';
             warehouseModal.show();
         }
 
-        function closeWarehouseModal() { warehouseModal.hide(); }
+        function calculateUsagePercentage() {
+            const capacity = parseFloat(document.getElementById('warehouse_capacity').value) || 0;
+            const current_load = parseFloat(document.getElementById('warehouse_current_load').value) || 0;
+            const usagePercentage = capacity > 0 ? ((current_load / capacity) * 100).toFixed(2) : 0;
+            document.getElementById('warehouse_usage').value = usagePercentage;
+        }
+
+        // Add event listeners to update usage percentage
+        document.getElementById('warehouse_capacity').addEventListener('input', calculateUsagePercentage);
+        document.getElementById('warehouse_current_load').addEventListener('input', calculateUsagePercentage);
+
+        function closeWarehouseModal() {
+            warehouseModal.hide();
+        }
 
         function editWarehouse(id) {
-            if (!id || id <= 0) { alert('Error: Invalid warehouse ID'); return; }
-
+            if (!id || id <= 0) {
+                alert('Error: Invalid warehouse ID');
+                console.error('Invalid warehouse ID:', id);
+                return;
+            }
+            
             axios.get(`${API_URL}/warehouse/${id}`)
                 .then(response => {
-                    if (!response.data?.success) { alert('Error: Server response indicates failure'); return; }
-                    const d = response.data.data;
-                    document.getElementById('warehouseId').value          = d.id || id;
-                    document.getElementById('warehouse_name').value        = d.warehouse_name || '';
-                    document.getElementById('warehouse_location').value    = d.location || '';
-                    document.getElementById('warehouse_capacity').value    = d.capacity || '';
-                    document.getElementById('warehouse_current_load').value = d.current_load ?? '–';
-                    document.getElementById('warehouse_usage').value       = d.usage_percentage != null ? d.usage_percentage : '';
-                    document.getElementById('warehouse_status').value      = d.status || 'available';
-                    document.getElementById('warehouseModalTitle').textContent = 'Edit Warehouse';
-                    document.getElementById('warehouseSubmitBtn').textContent  = 'Update';
-                    warehouseModal.show();
+                    console.log('Warehouse API Response:', response.data);
+                    
+                    if (!response.data || !response.data.success) {
+                        alert('Error: Server response indicates failure');
+                        console.error('Failed response:', response.data);
+                        return;
+                    }
+                    
+                    const data = response.data.data;
+                    
+                    if (!data || typeof data !== 'object') {
+                        alert('Error: Invalid data format from server');
+                        console.error('Invalid data structure:', data);
+                        return;
+                    }
+                    
+                    try {
+                        document.getElementById('warehouseId').value = data.id || id;
+                        document.getElementById('warehouse_code').value = data.warehouse_code || '';
+                        document.getElementById('warehouse_name').value = data.warehouse_name || '';
+                        document.getElementById('warehouse_location').value = data.location || '';
+                        document.getElementById('warehouse_hub_id').value = data.hub_id || '';
+                        document.getElementById('warehouse_capacity').value = data.capacity || '';
+                        document.getElementById('warehouse_current_load').value = data.current_load || 0;
+                        document.getElementById('warehouse_usage').value = data.usage_percentage || 0;
+                        document.getElementById('warehouse_status').value = data.status || 'active';
+                        
+                        document.getElementById('warehouseModalTitle').textContent = 'Edit Warehouse';
+                        document.getElementById('warehouseSubmitBtn').textContent = 'Update';
+                        warehouseModal.show();
+                    } catch (e) {
+                        alert('Error populating form: ' + e.message);
+                        console.error('Form population error:', e);
+                    }
                 })
-                .catch(err => alert('Error: ' + (err.response?.data?.message || 'Failed to load warehouse')));
+                .catch(error => {
+                    console.error('Axios error:', error);
+                    let errorMsg = 'Failed to load warehouse';
+                    
+                    if (error.response) {
+                        errorMsg = error.response.data?.message || error.response.statusText || errorMsg;
+                    } else if (error.request) {
+                        errorMsg = 'No response from server';
+                    }
+                    
+                    alert('Error: ' + errorMsg);
+                });
         }
 
         function saveWarehouse(e) {
             e.preventDefault();
-            const id   = document.getElementById('warehouseId').value;
-            const name = document.getElementById('warehouse_name').value.trim();
-            const loc  = document.getElementById('warehouse_location').value.trim();
-            const cap  = parseInt(document.getElementById('warehouse_capacity').value);
-            const stat = document.getElementById('warehouse_status').value;
-
-            if (!name || !loc || !cap || cap < 1) {
-                alert('Please fill all required fields correctly.');
+            
+            const id = document.getElementById('warehouseId').value;
+            const warehouse_code = document.getElementById('warehouse_code').value;
+            const warehouse_name = document.getElementById('warehouse_name').value;
+            const warehouseLocation = document.getElementById('warehouse_location').value;
+            const hub_id = document.getElementById('warehouse_hub_id').value;
+            const capacity = document.getElementById('warehouse_capacity').value;
+            const current_load = document.getElementById('warehouse_current_load').value;
+            const status = document.getElementById('warehouse_status').value;
+            
+            if (!warehouse_code.trim() || !warehouse_name.trim() || !warehouseLocation.trim() || !capacity || capacity <= 0 || current_load === '' || current_load < 0) {
+                alert('Please fill all required fields correctly. Current Load cannot be negative.');
                 return;
             }
+            
+            if (parseInt(current_load) > parseInt(capacity)) {
+                alert('Current Load cannot exceed Capacity');
+                return;
+            }
+            
+            const data = {
+                warehouse_code: warehouse_code.trim(),
+                warehouse_name: warehouse_name.trim(),
+                location: warehouseLocation.trim(),
+                hub_id: hub_id ? parseInt(hub_id) : null,
+                capacity: parseInt(capacity),
+                current_load: parseInt(current_load),
+                status: status
+            };
 
-            const data   = { warehouse_name: name, location: loc, capacity: cap, status: stat };
             const method = id ? 'put' : 'post';
-            const url    = id ? `${API_URL}/warehouse/${id}` : `${API_URL}/warehouse`;
-
-            const btn = document.getElementById('warehouseSubmitBtn');
-            btn.disabled = true;
-            btn.textContent = 'Saving…';
+            const url = id ? `${API_URL}/warehouse/${id}` : `${API_URL}/warehouse`;
 
             axios[method](url, data)
-                .then(res => {
-                    if (res.data?.success) {
+                .then(response => {
+                    if (response.data?.success) {
                         alert('Warehouse saved successfully!');
                         window.location.reload();
                     } else {
-                        alert('Error: ' + (res.data?.message || 'Unknown error'));
+                        alert('Error: ' + (response.data?.message || 'Unknown error occurred'));
                     }
                 })
-                .catch(err => alert('Error: ' + (err.response?.data?.message || err.message || 'Failed to save warehouse')))
-                .finally(() => { btn.disabled = false; btn.textContent = id ? 'Update' : 'Save'; });
+                .catch(error => {
+                    console.error('Error saving warehouse:', error);
+                    const errorMsg = error.response?.data?.message || error.message || 'Failed to save warehouse';
+                    alert('Error: ' + errorMsg);
+                });
         }
 
         function deleteWarehouse(id) {
             if (confirm('Are you sure you want to delete this warehouse?')) {
                 axios.delete(`${API_URL}/warehouse/${id}`)
-                    .then(res => { if (res.data?.success) { alert('Warehouse deleted successfully!'); window.location.reload(); } })
-                    .catch(err => alert('Error: ' + (err.response?.data?.error || 'Failed to delete warehouse')));
+                    .then(response => {
+                        if (response.data?.success) {
+                            alert('Warehouse deleted successfully!');
+                            window.location.reload();
+                        }
+                    })
+                    .catch(error => {
+                        alert('Error: ' + (error.response?.data?.error || 'Failed to delete warehouse'));
+                    });
             }
         }
 
-        /* ─── Package Modal ─── */
+        // Package Modal Functions
         function openPackageModal() {
             document.getElementById('packageId').value = '';
             document.getElementById('packageForm').reset();
             document.getElementById('packageModalTitle').textContent = 'Register Package';
-            document.getElementById('packageSubmitBtn').textContent  = 'Register';
+            document.getElementById('packageSubmitBtn').textContent = 'Register';
             packageModal.show();
         }
 
-        function closePackageModal() { packageModal.hide(); }
+        function closePackageModal() {
+            packageModal.hide();
+        }
 
         function editPackage(id) {
-            if (!id || id <= 0) { alert('Error: Invalid package ID'); return; }
-
+            if (!id || id <= 0) {
+                alert('Error: Invalid package ID');
+                return;
+            }
+            
             axios.get(`${API_URL}/package/${id}`)
-                .then(res => {
-                    if (!res.data?.success) { alert('Error: Server response indicates failure'); return; }
-                    const d = res.data.data;
-                    document.getElementById('packageId').value       = d.id || id;
-                    document.getElementById('tracking_number').value = d.tracking_number || '';
-                    document.getElementById('sender_name').value     = d.sender_name || '';
-                    document.getElementById('receiver_name').value   = d.receiver_name || '';
-                    document.getElementById('origin').value          = d.origin || '';
-                    document.getElementById('destination').value     = d.destination || '';
-                    document.getElementById('weight').value          = d.weight || '';
-                    document.getElementById('length').value          = d.length || '';
-                    document.getElementById('width').value           = d.width || '';
-                    document.getElementById('height').value          = d.height || '';
-                    document.getElementById('warehouse_id').value    = d.warehouse_id || '';
-                    document.getElementById('package_status').value  = d.package_status || 'registered';
-                    document.getElementById('packageModalTitle').textContent = 'Edit Package';
-                    document.getElementById('packageSubmitBtn').textContent  = 'Update';
-                    packageModal.show();
+                .then(response => {
+                    console.log('Package API Response:', response.data);
+                    
+                    if (!response.data || !response.data.success) {
+                        alert('Error: Server response indicates failure');
+                        return;
+                    }
+                    
+                    const data = response.data.data;
+                    
+                    if (!data || typeof data !== 'object') {
+                        alert('Error: Invalid data format from server');
+                        return;
+                    }
+                    
+                    try {
+                        document.getElementById('packageId').value = data.id || id;
+                        document.getElementById('tracking_number').value = data.tracking_number || '';
+                        document.getElementById('sender_name').value = data.sender_name || '';
+                        document.getElementById('receiver_name').value = data.receiver_name || '';
+                        document.getElementById('origin').value = data.origin || '';
+                        document.getElementById('destination').value = data.destination || '';
+                        document.getElementById('weight').value = data.weight || '';
+                        document.getElementById('length').value = data.length || '';
+                        document.getElementById('width').value = data.width || '';
+                        document.getElementById('height').value = data.height || '';
+                        document.getElementById('warehouse_id').value = data.warehouse_id || '';
+                        document.getElementById('package_status').value = data.package_status || 'registered';
+                        
+                        document.getElementById('packageModalTitle').textContent = 'Edit Package';
+                        document.getElementById('packageSubmitBtn').textContent = 'Update';
+                        packageModal.show();
+                    } catch (e) {
+                        alert('Error populating form: ' + e.message);
+                    }
                 })
-                .catch(err => alert('Error: ' + (err.response?.data?.message || 'Failed to load package')));
+                .catch(error => {
+                    console.error('Axios error:', error);
+                    let errorMsg = 'Failed to load package';
+                    
+                    if (error.response) {
+                        errorMsg = error.response.data?.message || error.response.statusText || errorMsg;
+                    }
+                    
+                    alert('Error: ' + errorMsg);
+                });
         }
 
         function savePackage(e) {
             e.preventDefault();
+            
             const id = document.getElementById('packageId').value;
             const data = {
                 tracking_number: document.getElementById('tracking_number').value.trim(),
-                sender_name:     document.getElementById('sender_name').value.trim(),
-                receiver_name:   document.getElementById('receiver_name').value.trim(),
-                origin:          document.getElementById('origin').value.trim(),
-                destination:     document.getElementById('destination').value.trim(),
-                weight:          parseFloat(document.getElementById('weight').value),
-                length:          parseFloat(document.getElementById('length').value),
-                width:           parseFloat(document.getElementById('width').value),
-                height:          parseFloat(document.getElementById('height').value),
-                warehouse_id:    parseInt(document.getElementById('warehouse_id').value),
-                package_status:  document.getElementById('package_status').value,
+                sender_name: document.getElementById('sender_name').value.trim(),
+                receiver_name: document.getElementById('receiver_name').value.trim(),
+                origin: document.getElementById('origin').value.trim(),
+                destination: document.getElementById('destination').value.trim(),
+                weight: parseFloat(document.getElementById('weight').value),
+                length: parseFloat(document.getElementById('length').value),
+                width: parseFloat(document.getElementById('width').value),
+                height: parseFloat(document.getElementById('height').value),
+                warehouse_id: parseInt(document.getElementById('warehouse_id').value),
+                package_status: document.getElementById('package_status').value
             };
 
             if (!data.tracking_number || !data.sender_name || !data.receiver_name || !data.origin || !data.destination) {
-                alert('Please fill all required fields'); return;
+                alert('Please fill all required fields');
+                return;
             }
             if (data.weight <= 0 || data.length <= 0 || data.width <= 0 || data.height <= 0) {
-                alert('All numeric values must be greater than 0'); return;
+                alert('All numeric values must be greater than 0');
+                return;
             }
-            if (!data.warehouse_id) { alert('Please select a warehouse'); return; }
 
-            const btn    = document.getElementById('packageSubmitBtn');
             const method = id ? 'put' : 'post';
-            const url    = id ? `${API_URL}/package/${id}` : `${API_URL}/package/register`;
-
-            btn.disabled = true;
-            btn.textContent = 'Saving…';
+            const url = id ? `${API_URL}/package/${id}` : `${API_URL}/package/register`;
 
             axios[method](url, data)
-                .then(res => {
-                    if (res.data?.success) {
+                .then(response => {
+                    if (response.data?.success) {
                         alert('Package saved successfully!');
                         window.location.reload();
                     } else {
-                        alert('Error: ' + (res.data?.message || 'Unknown error'));
+                        alert('Error: ' + (response.data?.message || 'Unknown error occurred'));
                     }
                 })
-                .catch(err => alert('Error: ' + (err.response?.data?.message || err.message || 'Failed to save package')))
-                .finally(() => { btn.disabled = false; btn.textContent = id ? 'Update' : 'Register'; });
+                .catch(error => {
+                    console.error('Error saving package:', error);
+                    const errorMsg = error.response?.data?.message || error.message || 'Failed to save package';
+                    alert('Error: ' + errorMsg);
+                });
         }
 
         function deletePackage(id) {
             if (confirm('Are you sure you want to delete this package?')) {
                 axios.delete(`${API_URL}/package/${id}`)
-                    .then(res => { if (res.data?.success) { alert('Package deleted successfully!'); window.location.reload(); } })
-                    .catch(err => alert('Error: ' + (err.response?.data?.error || 'Failed to delete package')));
+                    .then(response => {
+                        if (response.data?.success) {
+                            alert('Package deleted successfully!');
+                            window.location.reload();
+                        }
+                    })
+                    .catch(error => {
+                        alert('Error: ' + (error.response?.data?.error || 'Failed to delete package'));
+                    });
             }
         }
     </script>
-</body>
-</html>
+    @endpush
+@endsection

@@ -5,30 +5,19 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StorePackageRequest;
 use App\Http\Requests\UpdatePackageRequest;
-use App\Repositories\Contracts\PackageRepositoryInterface;
+use App\Models\Package;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 class PackageController extends Controller
 {
-    private PackageRepositoryInterface $packageRepository;
-
-    /**
-     * Constructor initialization with dependency injection
-     * 
-     * @param PackageRepositoryInterface $packageRepository
-     */
-    public function __construct(PackageRepositoryInterface $packageRepository)
-    {
-        $this->packageRepository = $packageRepository;
-    }
-
     /**
      * Display a listing of all packages.
      */
     public function index()
     {
         try {
-            $packages = $this->packageRepository->getAllPackages();
+            $packages = Package::with('warehouse')->get();
 
             // Add dimension category to each package
             $packages = $packages->map(function ($package) {
@@ -59,7 +48,27 @@ class PackageController extends Controller
     public function store(StorePackageRequest $request)
     {
         try {
-            $package = $this->packageRepository->createPackage($request->validated());
+            // Auto calculate volume: length × width × height
+            $volume = $request->length * $request->width * $request->height;
+
+            $package = Package::create([
+                ...$request->validated(),
+                'volume' => $volume
+            ]);
+
+            // ── Integrasi Modul 1 ↔ Modul 4 ──
+            // Ketika paket didaftarkan masuk ke gudang, sinkronkan current_load
+            // pada Hub yang menaungi gudang tersebut.
+            $package->load('warehouse.hub');
+            if ($package->warehouse) {
+                \App\Models\Warehouse::where('id', $package->warehouse_id)
+                    ->increment('current_load', 1);
+
+                if ($package->warehouse->hub_id) {
+                    \App\Models\Hub::where('id', $package->warehouse->hub_id)
+                        ->increment('current_load', 1);
+                }
+            }
 
             // Convert to array for response
             $packageData = $package->toArray();
@@ -77,7 +86,7 @@ class PackageController extends Controller
                 'data' => $packageData
             ], 201);
         } catch (\Exception $e) {
-            \Log::error('Package store error: ' . $e->getMessage(), [
+            Log::error('Package store error: ' . $e->getMessage(), [
                 'trace' => $e->getTraceAsString()
             ]);
             
@@ -95,7 +104,7 @@ class PackageController extends Controller
     public function show($id)
     {
         try {
-            $package = $this->packageRepository->getPackageById($id);
+            $package = Package::with('warehouse')->findOrFail($id);
 
             // Convert to array for response
             $packageData = $package->toArray();
@@ -119,7 +128,7 @@ class PackageController extends Controller
                 'error' => 'The package with ID ' . $id . ' does not exist'
             ], 404);
         } catch (\Exception $e) {
-            \Log::error('Package show error: ' . $e->getMessage(), [
+            Log::error('Package show error: ' . $e->getMessage(), [
                 'package_id' => $id,
                 'trace' => $e->getTraceAsString()
             ]);
@@ -138,7 +147,48 @@ class PackageController extends Controller
     public function update(UpdatePackageRequest $request, $id)
     {
         try {
-            $package = $this->packageRepository->updatePackage($id, $request->validated());
+            $package = Package::with('warehouse')->findOrFail($id);
+            $oldWarehouseId = $package->warehouse_id;
+            $oldHubId = $package->warehouse?->hub_id;
+
+            $data = $request->validated();
+
+            // Recalculate volume if any dimension is updated
+            if ($request->has('length') || $request->has('width') || $request->has('height')) {
+                $length = $data['length'] ?? $package->length ?? 0;
+                $width = $data['width'] ?? $package->width ?? 0;
+                $height = $data['height'] ?? $package->height ?? 0;
+                $data['volume'] = $length * $width * $height;
+            }
+
+            $package->update($data);
+
+            if (array_key_exists('warehouse_id', $data) && $oldWarehouseId !== (int) $data['warehouse_id']) {
+                \App\Models\Warehouse::where('id', $oldWarehouseId)
+                    ->where('current_load', '>', 0)
+                    ->decrement('current_load', 1);
+
+                if ($oldHubId) {
+                    \App\Models\Hub::where('id', $oldHubId)
+                        ->where('current_load', '>', 0)
+                        ->decrement('current_load', 1);
+                }
+
+                $newWarehouse = \App\Models\Warehouse::with('hub')->find((int) $data['warehouse_id']);
+
+                if ($newWarehouse) {
+                    \App\Models\Warehouse::where('id', $newWarehouse->id)
+                        ->increment('current_load', 1);
+
+                    if ($newWarehouse->hub_id) {
+                        \App\Models\Hub::where('id', $newWarehouse->hub_id)
+                            ->increment('current_load', 1);
+                    }
+                }
+            }
+            
+            // Refresh package data
+            $package->refresh();
             
             // Convert to array for response
             $packageData = $package->toArray();
@@ -162,7 +212,7 @@ class PackageController extends Controller
                 'error' => 'The package with ID ' . $id . ' does not exist'
             ], 404);
         } catch (\Exception $e) {
-            \Log::error('Package update error: ' . $e->getMessage(), [
+            Log::error('Package update error: ' . $e->getMessage(), [
                 'package_id' => $id,
                 'trace' => $e->getTraceAsString()
             ]);
@@ -181,11 +231,28 @@ class PackageController extends Controller
     public function destroy($id)
     {
         try {
-            $this->packageRepository->deletePackage($id);
+            $package = Package::with('warehouse')->findOrFail($id);
+
+            // ── Integrasi Modul 1 ↔ Modul 4 ──
+            // Ketika paket keluar/dihapus dari gudang, sinkronkan current_load hub.
+            if ($package->warehouse) {
+                \App\Models\Warehouse::where('id', $package->warehouse_id)
+                    ->where('current_load', '>', 0)
+                    ->decrement('current_load', 1);
+
+                if ($package->warehouse->hub_id) {
+                    \App\Models\Hub::where('id', $package->warehouse->hub_id)
+                        ->where('current_load', '>', 0)
+                        ->decrement('current_load', 1);
+                }
+            }
+
+            $package->delete();
 
             return response()->json([
                 'success' => true,
-                'message' => 'Package deleted successfully'
+                'message' => 'Package deleted successfully',
+                'data' => $package
             ], 200);
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             return response()->json([
@@ -208,7 +275,7 @@ class PackageController extends Controller
     public function getDimension($id)
     {
         try {
-            $package = $this->packageRepository->getPackageById($id);
+            $package = Package::findOrFail($id);
 
             $dimensionCategory = $package->getDimensionCategory();
 

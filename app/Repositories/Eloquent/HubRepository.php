@@ -3,6 +3,7 @@
 namespace App\Repositories\Eloquent;
 
 use App\Models\Hub;
+use App\Models\Warehouse;
 use App\Repositories\Contracts\HubRepositoryInterface;
 
 class HubRepository implements HubRepositoryInterface
@@ -13,14 +14,39 @@ class HubRepository implements HubRepositoryInterface
         if ($search) {
             $query->where('name', 'like', "%{$search}%");
         }
-        return $query->get();
+
+        $hubs = $query->get();
+
+        if ($hubs->isEmpty()) {
+            return $hubs;
+        }
+
+        $hubIds = $hubs->pluck('id')->all();
+
+        $warehouseLoads = Warehouse::query()
+            ->selectRaw('hub_id, SUM(current_load) as total_load')
+            ->whereIn('hub_id', $hubIds)
+            ->groupBy('hub_id')
+            ->pluck('total_load', 'hub_id');
+
+        return $hubs->map(function (Hub $hub) use ($warehouseLoads) {
+            $warehouseLoad = (int) ($warehouseLoads[$hub->id] ?? 0);
+
+            $hub->current_load = $warehouseLoad;
+
+            return $hub;
+        });
     }
 
     public function checkCapacity($hubId)
     {
         $hub = Hub::findOrFail($hubId);
+
+        $warehouseLoad = (int) Warehouse::query()
+            ->where('hub_id', $hubId)
+            ->sum('current_load');
         
-        $percentage = ($hub->capacity > 0) ? ($hub->current_load / $hub->capacity) * 100 : 0;
+        $percentage = ($hub->capacity > 0) ? ($warehouseLoad / $hub->capacity) * 100 : 0;
         
         // Return structured data for "monitoring kapasitas gudang"
         $status = 'available';
@@ -34,7 +60,7 @@ class HubRepository implements HubRepositoryInterface
             'hub_id' => $hub->id,
             'name' => $hub->name,
             'capacity' => $hub->capacity,
-            'current_load' => $hub->current_load,
+            'current_load' => $warehouseLoad,
             'utilization_percentage' => round($percentage, 2) . '%',
             'status' => $status
         ];

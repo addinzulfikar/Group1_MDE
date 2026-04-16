@@ -5,30 +5,19 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreWarehouseRequest;
 use App\Http\Requests\UpdateWarehouseRequest;
-use App\Repositories\Contracts\WarehouseRepositoryInterface;
-use Illuminate\Http\Request;
+use App\Models\Hub;
+use App\Models\Warehouse;
+use Illuminate\Support\Facades\Log;
 
 class WarehouseController extends Controller
 {
-    private WarehouseRepositoryInterface $warehouseRepository;
-
-    /**
-     * Constructor initialization with dependency injection
-     * 
-     * @param WarehouseRepositoryInterface $warehouseRepository
-     */
-    public function __construct(WarehouseRepositoryInterface $warehouseRepository)
-    {
-        $this->warehouseRepository = $warehouseRepository;
-    }
-
     /**
      * Display a listing of all warehouses.
      */
     public function index()
     {
         try {
-            $warehouses = $this->warehouseRepository->getAllWarehouses();
+            $warehouses = Warehouse::with(['packages', 'hub'])->get();
 
             return response()->json([
                 'success' => true,
@@ -51,7 +40,13 @@ class WarehouseController extends Controller
     public function store(StoreWarehouseRequest $request)
     {
         try {
-            $warehouse = $this->warehouseRepository->createWarehouse($request->validated());
+            $payload = $request->validated();
+            $payload['current_load'] = $payload['current_load'] ?? 0;
+
+            $warehouse = Warehouse::create($payload);
+
+            $this->applyHubLoadChange($warehouse->hub_id, (int) $warehouse->current_load);
+            $warehouse->load(['packages', 'hub']);
 
             return response()->json([
                 'success' => true,
@@ -73,7 +68,7 @@ class WarehouseController extends Controller
     public function show($id)
     {
         try {
-            $warehouse = $this->warehouseRepository->getWarehouseById($id);
+            $warehouse = Warehouse::with(['packages', 'hub'])->findOrFail($id);
 
             // Convert to array for response
             $warehouseData = $warehouse->toArray();
@@ -83,8 +78,11 @@ class WarehouseController extends Controller
                 $warehouseData['id'] = $warehouse->id;
             }
 
-            // Calculate warehouse usage percentage using repository method
-            $usagePercentage = $this->warehouseRepository->calculateUsagePercentage($warehouse->id);
+            // Calculate warehouse usage percentage
+            $usagePercentage = $warehouse->capacity > 0 
+                ? round(($warehouse->current_load / $warehouse->capacity) * 100, 2) 
+                : 0;
+
             $warehouseData['usage_percentage'] = $usagePercentage;
 
             return response()->json([
@@ -99,7 +97,7 @@ class WarehouseController extends Controller
                 'error' => 'The warehouse with ID ' . $id . ' does not exist'
             ], 404);
         } catch (\Exception $e) {
-            \Log::error('Warehouse show error: ' . $e->getMessage(), [
+            Log::error('Warehouse show error: ' . $e->getMessage(), [
                 'warehouse_id' => $id,
                 'trace' => $e->getTraceAsString()
             ]);
@@ -118,7 +116,26 @@ class WarehouseController extends Controller
     public function update(UpdateWarehouseRequest $request, $id)
     {
         try {
-            $warehouse = $this->warehouseRepository->updateWarehouse($id, $request->validated());
+            $warehouse = Warehouse::findOrFail($id);
+
+            $oldHubId = $warehouse->hub_id;
+            $oldCurrentLoad = (int) $warehouse->current_load;
+
+            $warehouse->update($request->validated());
+            
+            // Refresh warehouse data
+            $warehouse->refresh();
+            $warehouse->load(['packages', 'hub']);
+
+            $newHubId = $warehouse->hub_id;
+            $newCurrentLoad = (int) $warehouse->current_load;
+
+            if ($oldHubId === $newHubId) {
+                $this->applyHubLoadChange($newHubId, $newCurrentLoad - $oldCurrentLoad);
+            } else {
+                $this->applyHubLoadChange($oldHubId, -$oldCurrentLoad);
+                $this->applyHubLoadChange($newHubId, $newCurrentLoad);
+            }
             
             // Convert to array for response
             $warehouseData = $warehouse->toArray();
@@ -128,8 +145,10 @@ class WarehouseController extends Controller
                 $warehouseData['id'] = $warehouse->id;
             }
             
-            // Calculate usage percentage using repository method
-            $usagePercentage = $this->warehouseRepository->calculateUsagePercentage($warehouse->id);
+            // Calculate usage percentage
+            $usagePercentage = $warehouse->capacity > 0 
+                ? round(($warehouse->current_load / $warehouse->capacity) * 100, 2) 
+                : 0;
             $warehouseData['usage_percentage'] = $usagePercentage;
 
             return response()->json([
@@ -144,7 +163,7 @@ class WarehouseController extends Controller
                 'error' => 'The warehouse with ID ' . $id . ' does not exist'
             ], 404);
         } catch (\Exception $e) {
-            \Log::error('Warehouse update error: ' . $e->getMessage(), [
+            Log::error('Warehouse update error: ' . $e->getMessage(), [
                 'warehouse_id' => $id,
                 'trace' => $e->getTraceAsString()
             ]);
@@ -163,20 +182,26 @@ class WarehouseController extends Controller
     public function destroy($id)
     {
         try {
-            // Check if warehouse has packages using repository method
-            if ($this->warehouseRepository->hasPackages($id)) {
+            $warehouse = Warehouse::findOrFail($id);
+            $hubId = $warehouse->hub_id;
+            $currentLoad = (int) $warehouse->current_load;
+
+            // Check if warehouse has packages
+            if ($warehouse->packages()->exists()) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Cannot delete warehouse',
-                    'error' => 'Warehouse still has packages. Please remove all packages first.'
+                    'error' => 'Warehouse has ' . $warehouse->packages()->count() . ' packages. Please remove all packages first.'
                 ], 422);
             }
 
-            $this->warehouseRepository->deleteWarehouse($id);
+            $warehouse->delete();
+            $this->applyHubLoadChange($hubId, -$currentLoad);
 
             return response()->json([
                 'success' => true,
-                'message' => 'Warehouse deleted successfully'
+                'message' => 'Warehouse deleted successfully',
+                'data' => $warehouse
             ], 200);
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             return response()->json([
@@ -191,5 +216,21 @@ class WarehouseController extends Controller
                 'error' => $e->getMessage()
             ], 500);
         }
+    }
+
+    private function applyHubLoadChange(?int $hubId, int $delta): void
+    {
+        if (!$hubId || $delta === 0) {
+            return;
+        }
+
+        $hub = Hub::find($hubId);
+
+        if (!$hub) {
+            return;
+        }
+
+        $hub->current_load = max(0, (int) $hub->current_load + $delta);
+        $hub->save();
     }
 }

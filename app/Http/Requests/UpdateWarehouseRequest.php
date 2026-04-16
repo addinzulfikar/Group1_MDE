@@ -16,17 +16,19 @@ class UpdateWarehouseRequest extends FormRequest
 
     /**
      * Get the validation rules that apply to the request.
-     * warehouse_code dihapus. current_load dihitung otomatis dari paket.
      *
      * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
      */
     public function rules(): array
     {
         return [
+            'warehouse_code' => 'nullable|string|unique:warehouses,warehouse_code,' . $this->route('id') . '|max:50',
             'warehouse_name' => 'nullable|string|max:100',
-            'location'       => 'nullable|string|max:255',
-            'capacity'       => 'nullable|integer|min:1',
-            'status'         => 'nullable|in:available,full,overload',
+            'location' => 'nullable|string|max:255',
+            'capacity' => 'nullable|integer|min:1',
+            'current_load' => 'nullable|integer|min:0',
+            'status' => 'nullable|in:active,inactive',
+            'hub_id' => 'nullable|exists:hubs,id',
         ];
     }
 
@@ -36,8 +38,12 @@ class UpdateWarehouseRequest extends FormRequest
     public function messages(): array
     {
         return [
+            'warehouse_code.unique' => 'Kode gudang sudah terdaftar',
             'capacity.integer' => 'Kapasitas harus berupa angka',
-            'capacity.min'     => 'Kapasitas minimal 1 unit',
+            'capacity.min' => 'Kapasitas minimal 1 unit',
+            'current_load.integer' => 'Beban saat ini harus berupa angka',
+            'current_load.min' => 'Beban saat ini tidak bisa negatif',
+            'hub_id.exists' => 'Hub yang dipilih tidak valid',
         ];
     }
 }

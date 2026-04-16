@@ -1,12 +1,11 @@
-<!DOCTYPE html>
-<html lang="id">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hasil Pencarian - Tracking System</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
-    <style>
+@extends('layouts.app')
+
+@section('title', 'Modul 2 - Hasil Pencarian')
+@section('meta_description', 'Hasil pencarian paket berdasarkan kata kunci tracking.')
+@section('active_nav', 'tracking')
+
+@push('styles')
+<style>
         body { background-color: #f8f9fa; font-family: 'Inter', sans-serif; }
         .navbar-brand { 
             font-weight: bold;
@@ -66,22 +65,9 @@
             height: 0.75rem;
         }
     </style>
-</head>
-<body>
+@endpush
 
-<nav class="navbar navbar-expand-lg navbar-dark bg-primary mb-4 p-2 p-md-3 shadow-sm">
-    <div class="container-fluid">
-        <a class="navbar-brand" href="/"><i class="bi bi-box-seam"></i> <span class="d-none d-sm-inline">Logistik Tim 1</span></a>
-        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-            <span class="navbar-toggler-icon"></span>
-        </button>
-        <div class="collapse navbar-collapse" id="navbarNav">
-            <div class="ms-auto">
-                <a href="/tracking/search" class="btn btn-light btn-sm"><i class="bi bi-arrow-left"></i> <span class="d-none d-md-inline">Cari Lagi</span></a>
-            </div>
-        </div>
-    </div>
-</nav>
+@section('content')
 
 <div class="container-fluid container-lg pb-5">
     <!-- Header -->
@@ -179,7 +165,4 @@
     </div>
     @endif
 </div>
-
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-</body>
-</html>
+@endsection

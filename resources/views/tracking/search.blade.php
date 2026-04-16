@@ -1,19 +1,20 @@
-<!DOCTYPE html>
-<html lang="id">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cari Paket - Tracking System</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
-    <style>
+@extends('layouts.app')
+
+@section('title', 'Modul 2 - Cari Paket')
+@section('meta_description', 'Halaman pencarian paket menggunakan nomor resi atau data pengirim.')
+@section('active_nav', 'tracking')
+
+@push('styles')
+<style>
         body {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
+            min-height: calc(100vh - 180px);
             font-family: 'Inter', sans-serif;
+        }
+        .tracking-search-wrap {
+            min-height: calc(100vh - 240px);
             display: flex;
             align-items: center;
-            justify-content: center;
         }
         .search-container {
             background: white;
@@ -75,34 +76,20 @@
             transform: translateY(-2px);
             box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
         }
-        .navbar-brand { 
-            font-weight: bold;
-            font-size: 0.9rem;
-        }
-        .navbar-brand i {
-            font-size: 1.2rem;
-            margin-right: 0.3rem;
-        }
-        @media (min-width: 576px) {
-            .navbar-brand {
-                font-size: 1.1rem;
-            }
-            .navbar-brand i {
-                font-size: 1.5rem;
-            }
-        }
     </style>
-</head>
-<body>
+@endpush
 
-<div class="container position-fixed top-0 start-0 p-3">
-    <a href="/" class="text-white text-decoration-none">
-        <i class="bi bi-arrow-left"></i> Kembali
-    </a>
-</div>
+@section('content')
 
-<div class="container">
-    <div class="search-container">
+<div class="container tracking-search-wrap py-4">
+    <div class="w-100">
+        <div class="mb-3">
+            <a href="{{ route('tracking.index') }}" class="text-white text-decoration-none fw-semibold">
+                <i class="bi bi-arrow-left"></i> Kembali ke Dashboard Tracking
+            </a>
+        </div>
+
+        <div class="search-container">
         <div class="text-center mb-4">
             <i class="bi bi-search search-icon"></i>
             <h1 class="fw-bold mb-2">Lacak Paket Anda</h1>
@@ -137,10 +124,11 @@
                 <li><i class="bi bi-check-circle text-success"></i> Nomor telepon juga bisa digunakan</li>
             </ul>
         </div>
+        </div>
     </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+@push('scripts')
 <script>
     // Autocomplete search
     const searchInput = document.getElementById('searchInput');
@@ -181,5 +169,5 @@
         }
     });
 </script>
-</body>
-</html>
+@endpush
+@endsection

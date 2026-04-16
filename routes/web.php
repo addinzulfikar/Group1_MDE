@@ -7,6 +7,11 @@ use App\Repositories\Contracts\HubRepositoryInterface;
 use App\Http\Controllers\Module1MonitoringController;
 use App\Http\Controllers\TrackingWebController;
 
+// ── Homepage Utama ──
+Route::get('/home', function () {
+    return view('pages.home.index');
+})->name('home');
+
 // Dashboard Modul 4 (Fleet & Hub)
 Route::get('/', function (\Illuminate\Http\Request $request, HubRepositoryInterface $hubRepo, FleetRepositoryInterface $fleetRepo) {
     if(!\Illuminate\Support\Facades\Schema::hasTable('hubs')) {
@@ -17,7 +22,7 @@ Route::get('/', function (\Illuminate\Http\Request $request, HubRepositoryInterf
     $allHubs = \App\Models\Hub::orderBy('name')->get();
     $fleets = $fleetRepo->getAllFleets($request->search_fleet); // returns pagination
     
-    return view('dashboard', compact('hubs', 'allHubs', 'fleets'));
+    return view('Fleet&Hub.index', compact('hubs', 'allHubs', 'fleets'));
 });
 
 // Module 1: Warehouse & Package Monitoring

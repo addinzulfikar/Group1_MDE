@@ -28,6 +28,11 @@ Route::get('/', function (\Illuminate\Http\Request $request, HubRepositoryInterf
 // Module 1: Warehouse & Package Monitoring
 Route::get('/module-1-monitor', [Module1MonitoringController::class, 'index'])->name('module1.monitoring');
 
+// Modul 3: Customer Auth & Shipping Profile
+Route::get('/module-3', function () {
+    return view('module3');
+})->name('module3');
+
 // Modul 2: Tracking System Routes
 Route::prefix('tracking')->group(function () {
     Route::get('/', [TrackingWebController::class, 'index'])->name('tracking.index');

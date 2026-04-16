@@ -17,7 +17,6 @@ class DatabaseSeeder extends Seeder
     {
         // Add ShipmentSeeder to the seeders list
         $this->call([
-            ShippingRateRuleSeeder::class,
             HubSeeder::class,
             FleetSeeder::class,
             FleetLogSeeder::class,   // 5.000+ log armada (ketentuan teknis UTS)

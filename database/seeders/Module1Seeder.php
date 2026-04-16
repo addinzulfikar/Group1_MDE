@@ -120,8 +120,10 @@ class Module1Seeder extends Seeder
                 ]
             );
 
+            // Remove warehouse_code from updateOrCreate since column was dropped in migration
+            unset($warehouse['warehouse_code']);
             $createdWarehouses[] = Warehouse::updateOrCreate(
-                ['warehouse_code' => $warehouse['warehouse_code']],
+                ['warehouse_name' => $warehouse['warehouse_name']],
                 array_merge($warehouse, ['hub_id' => $hub->id])
             );
         }

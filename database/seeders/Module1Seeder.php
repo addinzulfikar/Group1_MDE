@@ -104,11 +104,12 @@ class Module1Seeder extends Seeder
                 ? ($warehouse['current_load'] / $warehouse['capacity']) * 100
                 : 0;
 
-            $hubStatus = 'available';
+            // Calculate status based on percentage (same logic for both Hub and Warehouse)
+            $warehouseStatus = 'available';
             if ($percentage >= 100) {
-                $hubStatus = 'overload';
+                $warehouseStatus = 'overload';
             } elseif ($percentage >= 90) {
-                $hubStatus = 'full';
+                $warehouseStatus = 'full';
             }
 
             $hub = \App\Models\Hub::updateOrCreate(
@@ -116,12 +117,16 @@ class Module1Seeder extends Seeder
                 [
                     'capacity' => $warehouse['capacity'],
                     'current_load' => $warehouse['current_load'],
-                    'status' => $hubStatus,
+                    'status' => $warehouseStatus,
                 ]
             );
 
+            // Remove warehouse_code and set correct status
+            unset($warehouse['warehouse_code']);
+            $warehouse['status'] = $warehouseStatus;  // Use calculated status based on percentage
+            
             $createdWarehouses[] = Warehouse::updateOrCreate(
-                ['warehouse_code' => $warehouse['warehouse_code']],
+                ['warehouse_name' => $warehouse['warehouse_name']],
                 array_merge($warehouse, ['hub_id' => $hub->id])
             );
         }

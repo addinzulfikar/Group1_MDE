@@ -17,8 +17,20 @@ class Hub extends Model
         'status'
     ];
 
+    /**
+     * Armada yang sedang berada di hub ini (Modul 4).
+     */
     public function fleets()
     {
         return $this->hasMany(Fleet::class, 'current_hub_id');
+    }
+
+    /**
+     * Gudang-gudang fisik yang berada di bawah hub ini (Modul 1 ↔ Modul 4).
+     * Integrasi: paket masuk gudang → current_load hub bertambah.
+     */
+    public function warehouses()
+    {
+        return $this->hasMany(Warehouse::class);
     }
 }

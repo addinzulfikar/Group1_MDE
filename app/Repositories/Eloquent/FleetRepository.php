@@ -181,15 +181,16 @@ class FleetRepository implements FleetRepositoryInterface
             return $fleet;
         }
 
-        if ($oldHubId && $fleet->status !== 'in_transit') {
-            $this->syncHubWarehouseLoad((int) $oldHubId, -((int) $fleet->capacity));
-        }
-
+        // Logic error fix: idle/maintenance fleets are EMPTY. 
+        // Relocating them should NOT transfer any "ghost load" between warehouses.
+        // We only update the hub location.
         $fleet->current_hub_id = $destinationHubId;
-        $fleet->status = 'idle';
+        
+        if ($fleet->status === 'in_transit') {
+            $fleet->status = 'idle';
+        }
         $fleet->save();
 
-        $this->syncHubWarehouseLoad($destinationHubId, (int) $fleet->capacity);
         $this->logFleetRelocation($fleet, (int) ($oldHubId ?: $destinationHubId), $destinationHubId);
 
         return $fleet;
@@ -542,13 +543,9 @@ class FleetRepository implements FleetRepositoryInterface
             return;
         }
 
-        $appliedDelta = $delta < 0
-            ? -$this->deductWarehouseLoads($warehouses, abs($delta))
+        $delta < 0
+            ? $this->deductWarehouseLoads($warehouses, abs($delta))
             : $this->fillWarehouseLoads($warehouses, $delta);
-
-        if ($appliedDelta !== 0) {
-            $this->applyHubLoadDelta($hubId, $appliedDelta);
-        }
     }
 
     private function deductWarehouseLoads(Collection $warehouses, int $targetLoad): int
@@ -607,18 +604,6 @@ class FleetRepository implements FleetRepositoryInterface
         }
 
         return $applied;
-    }
-
-    private function applyHubLoadDelta(int $hubId, int $delta): void
-    {
-        $hub = Hub::find($hubId);
-
-        if (!$hub) {
-            return;
-        }
-
-        $hub->current_load = max(0, (int) $hub->current_load + $delta);
-        $hub->save();
     }
 
     private function getVolumetricDivisorByFleetType(string $fleetType): int

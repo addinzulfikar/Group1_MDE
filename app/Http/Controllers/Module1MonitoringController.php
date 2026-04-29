@@ -25,7 +25,7 @@ class Module1MonitoringController extends Controller
 
             // Calculate warehouse statistics
             $totalWarehouses = $warehouses->count();
-            $activeWarehouses = $warehouses->where('status', 'available')->count();
+            $activeWarehouses = $warehouses->where('status', 'active')->count();
             $totalCapacity = $warehouses->sum('capacity');
             $totalCurrentLoad = $warehouses->sum('current_load');
 

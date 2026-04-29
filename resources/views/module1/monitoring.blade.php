@@ -125,12 +125,10 @@
                         </div>
                     </td>
                     <td>
-                        @if($warehouse['status']==='available')
-                        <span class="status-badge-idle">Online</span>
-                        @elseif($warehouse['status']==='full')
-                        <span class="status-badge-maintenance">Full</span>
+                        @if($warehouse['status']==='active')
+                        <span class="status-badge-idle">Active</span>
                         @else
-                        <span class="badge bg-danger rounded-pill px-2 py-1" style="font-size: 0.75rem;">Overload</span>
+                        <span class="status-badge-maintenance">Inactive</span>
                         @endif
                     </td>
                     <td class="pe-4">
@@ -231,7 +229,6 @@
             <form id="warehouseForm" onsubmit="saveWarehouse(event)">
                 <div class="modal-body">
                     <input type="hidden" id="warehouseId">
-                    <div class="mb-3"><label class="form-label">Warehouse Code</label><input type="text" class="form-control" id="warehouse_code" required></div>
                     <div class="mb-3"><label class="form-label">Warehouse Name</label><input type="text" class="form-control" id="warehouse_name" required></div>
                     <div class="mb-3"><label class="form-label">Location</label><input type="text" class="form-control" id="warehouse_location" required></div>
                     <div class="mb-3">
@@ -248,7 +245,13 @@
                         <div class="col-md-6"><div class="mb-3"><label class="form-label">Current Load</label><input type="number" class="form-control" id="warehouse_current_load" required min="0"></div></div>
                     </div>
                     <div class="row">
-                        <div class="col-md-6"><div class="mb-3"><label class="form-label">Usage %</label><div class="input-group"><input type="text" class="form-control" id="warehouse_usage" readonly><span class="input-group-text">%</span></div></div></div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label d-flex justify-content-between"><span>Usage %</span><span id="warehouse_usage_text" class="fw-bold text-primary">0%</span></label>
+                                <div class="hub-progress mt-2" style="height: 12px; background: #e2e8f0;"><div id="warehouse_usage_bar" class="progress-bar bg-success" style="width: 0%; border-radius: 999px;"></div></div>
+                                <input type="hidden" id="warehouse_usage" value="0">
+                            </div>
+                        </div>
                         <div class="col-md-6"><div class="mb-3"><label class="form-label">Status</label><select class="form-select" id="warehouse_status"><option value="active">Active</option><option value="inactive">Inactive</option></select></div></div>
                     </div>
                 </div>

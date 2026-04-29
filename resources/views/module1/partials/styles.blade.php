@@ -126,13 +126,17 @@
 
     /* ── Progress Bar ── */
     .hub-progress {
+        display: flex;
         height: 8px;
         border-radius: 999px;
         background: #eef2f7;
+        overflow: hidden;
     }
 
     .hub-progress .progress-bar {
+        height: 100%;
         border-radius: 999px;
+        transition: width 0.4s ease;
     }
 
     /* ── Effective Weight Badge ── */

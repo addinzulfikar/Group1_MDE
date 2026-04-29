@@ -11,6 +11,9 @@
         document.getElementById('warehouseId').value = '';
         document.getElementById('warehouseForm').reset();
         document.getElementById('warehouse_usage').value = 0;
+        document.getElementById('warehouse_usage_text').textContent = '0%';
+        document.getElementById('warehouse_usage_bar').style.width = '0%';
+        document.getElementById('warehouse_usage_bar').className = 'progress-bar bg-success';
         document.getElementById('warehouseModalTitle').textContent = 'Add Warehouse';
         document.getElementById('warehouseSubmitBtn').textContent = 'Save';
         warehouseModal.show();
@@ -19,8 +22,17 @@
     function calculateUsagePercentage() {
         const capacity = parseFloat(document.getElementById('warehouse_capacity').value) || 0;
         const current_load = parseFloat(document.getElementById('warehouse_current_load').value) || 0;
-        const usagePercentage = capacity > 0 ? ((current_load / capacity) * 100).toFixed(2) : 0;
+        let usagePercentage = capacity > 0 ? ((current_load / capacity) * 100).toFixed(2) : 0;
+        if(usagePercentage > 100) usagePercentage = 100;
+        
         document.getElementById('warehouse_usage').value = usagePercentage;
+        document.getElementById('warehouse_usage_text').textContent = usagePercentage + '%';
+        
+        const bar = document.getElementById('warehouse_usage_bar');
+        bar.style.width = usagePercentage + '%';
+        if (usagePercentage < 50) bar.className = 'progress-bar bg-success';
+        else if (usagePercentage < 80) bar.className = 'progress-bar bg-warning';
+        else bar.className = 'progress-bar bg-danger';
     }
 
     document.getElementById('warehouse_capacity').addEventListener('input', calculateUsagePercentage);
@@ -35,14 +47,14 @@
             .then(response => {
                 const data = response.data.data;
                 document.getElementById('warehouseId').value = data.id || id;
-                document.getElementById('warehouse_code').value = data.warehouse_code || '';
                 document.getElementById('warehouse_name').value = data.warehouse_name || '';
                 document.getElementById('warehouse_location').value = data.location || '';
                 document.getElementById('warehouse_hub_id').value = data.hub_id || '';
                 document.getElementById('warehouse_capacity').value = data.capacity || '';
                 document.getElementById('warehouse_current_load').value = data.current_load || 0;
-                document.getElementById('warehouse_usage').value = data.usage_percentage || 0;
                 document.getElementById('warehouse_status').value = data.status || 'active';
+                
+                calculateUsagePercentage();
                 
                 document.getElementById('warehouseModalTitle').textContent = 'Edit Warehouse';
                 document.getElementById('warehouseSubmitBtn').textContent = 'Update';
@@ -63,7 +75,6 @@
         }
 
         const data = {
-            warehouse_code: document.getElementById('warehouse_code').value.trim(),
             warehouse_name: document.getElementById('warehouse_name').value.trim(),
             location: document.getElementById('warehouse_location').value.trim(),
             hub_id: document.getElementById('warehouse_hub_id').value ? parseInt(document.getElementById('warehouse_hub_id').value) : null,

@@ -222,12 +222,23 @@
             const basisEl = document.getElementById('prev_basis');
             if(isVolumetric) {
                 basisEl.className = 'badge-volumetric';
-                basisEl.textContent = 'volumetrik';
+                basisEl.textContent = 'volumetric';
             } else {
                 basisEl.className = 'badge-actual';
-                basisEl.textContent = 'aktual';
+                basisEl.textContent = 'actual';
             }
 
+            let cat = 'large';
+            let catColor = 'danger';
+            if (vol < 10000 && act < 5) { cat = 'small'; catColor = 'info'; }
+            else if (vol < 50000 && act < 20) { cat = 'medium'; catColor = 'success'; }
+            const catEl = document.getElementById('prev_category');
+            if (catEl) {
+                catEl.className = `badge bg-${catColor}`;
+                catEl.textContent = cat.charAt(0).toUpperCase() + cat.slice(1);
+            }
+
+            updateLocation();
             checkFleetCapacity();
         } else {
             document.getElementById('volPreview').style.display = 'none';
@@ -239,54 +250,107 @@
         axios.get(`${API_URL}/fleet`)
             .then(response => {
                 if (response.data && response.data.data) {
-                    fleetsCache = response.data.data.data || response.data.data; // Handle pagination structure if exists
+                    if (Array.isArray(response.data.data)) {
+                        fleetsCache = response.data.data;
+                    } else if (Array.isArray(response.data.data.data)) {
+                        fleetsCache = response.data.data.data;
+                    } else {
+                        fleetsCache = [];
+                    }
+                    
                     const select = document.getElementById('fleet_check_select');
-                    select.innerHTML = '<option value="">-- Pilih Armada --</option>';
+                    select.innerHTML = '<option value="">-- Select Fleet --</option>';
                     
                     fleetsCache.forEach(fleet => {
-                        select.innerHTML += `<option value="${fleet.id}" data-cap="${fleet.capacity}">${fleet.plate_number} (${fleet.type}) - Kapasitas: ${fleet.capacity} kg</option>`;
+                        select.innerHTML += `<option value="${fleet.id}" data-cap="${fleet.capacity}">${fleet.plate_number} (${fleet.type}) - Capacity: ${fleet.capacity} kg</option>`;
                     });
                 }
             })
-            .catch(error => console.error('Gagal memuat armada', error));
+            .catch(error => console.error('Failed to load fleet', error));
+    }
+
+    function updateLocation() {
+        const locEl = document.getElementById('prev_location');
+        if (!locEl) return;
+        
+        const origin = document.getElementById('origin').value.trim() || '-';
+        const destination = document.getElementById('destination').value.trim() || '-';
+        const status = document.getElementById('package_status').value;
+        const warehouseSelect = document.getElementById('warehouse_id');
+        let hubName = '';
+        if (warehouseSelect.selectedIndex >= 0 && warehouseSelect.value) {
+            const text = warehouseSelect.options[warehouseSelect.selectedIndex].text;
+            hubName = text.includes(' - ') ? text.split(' - ')[1] : text;
+        }
+        
+        let locHtml = '-';
+        if (status === 'delivered') {
+            locHtml = `<span class="text-primary fw-semibold"><i class="bi bi-house-door-fill me-1"></i>${destination}</span>`;
+        } else if (status === 'shipped' || status === 'in_transit') {
+            locHtml = `<span class="text-success"><i class="bi bi-truck me-1"></i>To ${destination}</span>`;
+        } else if (hubName && hubName !== '- No Hub -') {
+            locHtml = `<span class="hub-chip"><i class="bi bi-geo-alt-fill"></i>${hubName}</span>`;
+        } else {
+            locHtml = `<span class="text-muted"><i class="bi bi-box me-1"></i>Origin: ${origin}</span>`;
+        }
+        locEl.innerHTML = locHtml;
     }
 
     function checkFleetCapacity() {
         const select = document.getElementById('fleet_check_select');
-        const badge = document.getElementById('fleet_fit_badge');
+        const resultBox = document.getElementById('fleet_fit_result');
+        const icon = document.getElementById('fleet_fit_icon');
+        const title = document.getElementById('fleet_fit_title');
+        const desc = document.getElementById('fleet_fit_desc');
+        
+        if (!select || !resultBox) return;
         
         if (!select.value || currentEffectiveWeight <= 0) {
-            badge.style.display = 'none';
+            resultBox.style.display = 'none';
             return;
         }
 
         const selectedOption = select.options[select.selectedIndex];
         const capacity = parseFloat(selectedOption.getAttribute('data-cap'));
+        const plate = selectedOption.text.split(' (')[0];
 
-        badge.style.display = 'inline-block';
+        resultBox.style.display = 'block';
         if (currentEffectiveWeight <= capacity) {
-            badge.className = 'fit-badge fit-ok';
-            badge.innerHTML = '<i class="bi bi-check-circle me-1"></i>MUAT';
+            resultBox.className = 'alert mt-3 mb-0 alert-success border-success bg-success bg-opacity-10';
+            icon.innerHTML = '<i class="bi bi-check-circle-fill text-success"></i>';
+            title.innerHTML = 'Capacity FITS';
+            title.className = 'fw-bold fs-6 text-success mb-1';
+            desc.innerHTML = `The effective weight (<strong>${currentEffectiveWeight} kg</strong>) fits comfortably within ${plate}'s capacity (${capacity} kg).`;
         } else {
-            badge.className = 'fit-badge fit-no';
-            badge.innerHTML = '<i class="bi bi-x-circle me-1"></i>TIDAK MUAT';
+            resultBox.className = 'alert mt-3 mb-0 alert-danger border-danger bg-danger bg-opacity-10';
+            icon.innerHTML = '<i class="bi bi-x-circle-fill text-danger"></i>';
+            title.innerHTML = 'DOES NOT FIT';
+            title.className = 'fw-bold fs-6 text-danger mb-1';
+            desc.innerHTML = `The effective weight (<strong>${currentEffectiveWeight} kg</strong>) exceeds ${plate}'s maximum capacity (${capacity} kg)!`;
         }
     }
 
     // --- Live Fleet Tracking Integration ---
     function openFleetModal(hubId, hubName) {
-        document.getElementById('fleetModalHubLabel').textContent = `Menampilkan armada di ${hubName} (Hub ID: ${hubId}).`;
-        document.getElementById('fleetModalContent').innerHTML = '<div class="text-center py-4"><div class="spinner-border text-primary" role="status"></div><p class="mt-2 text-muted small">Memuat data armada...</p></div>';
+        document.getElementById('fleetModalHubLabel').textContent = `Showing fleets at ${hubName} (Hub ID: ${hubId}).`;
+        document.getElementById('fleetModalContent').innerHTML = '<div class="text-center py-4"><div class="spinner-border text-primary" role="status"></div><p class="mt-2 text-muted small">Loading fleet data...</p></div>';
         fleetTrackModal.show();
 
         axios.get(`${API_URL}/fleet`)
             .then(response => {
-                const allFleets = response.data.data.data || response.data.data;
+                let allFleets = [];
+                if (response.data && response.data.data) {
+                    if (Array.isArray(response.data.data)) {
+                        allFleets = response.data.data;
+                    } else if (Array.isArray(response.data.data.data)) {
+                        allFleets = response.data.data.data;
+                    }
+                }
                 const hubFleets = allFleets.filter(f => f.current_hub_id == hubId);
                 
                 let html = '';
                 if (hubFleets.length === 0) {
-                    html = '<div class="alert alert-light text-center border text-muted"><i class="bi bi-truck text-muted opacity-50 d-block fs-3 mb-2"></i>Tidak ada armada di hub ini saat ini.</div>';
+                    html = '<div class="alert alert-light text-center border text-muted"><i class="bi bi-truck text-muted opacity-50 d-block fs-3 mb-2"></i>No fleets at this hub currently.</div>';
                 } else {
                     hubFleets.forEach(f => {
                         let statusHtml = '';
@@ -303,7 +367,7 @@
                                     ${statusHtml}
                                 </div>
                                 <div class="text-muted small">
-                                    Tipe: <span class="text-capitalize">${f.type}</span> &bull; Kapasitas: ${f.capacity} kg
+                                    Type: <span class="text-capitalize">${f.type}</span> &bull; Capacity: ${f.capacity} kg
                                 </div>
                             </div>
                         </div>`;
@@ -313,7 +377,7 @@
                 document.getElementById('fleetModalContent').innerHTML = html;
             })
             .catch(error => {
-                document.getElementById('fleetModalContent').innerHTML = '<div class="alert alert-danger">Gagal memuat data armada. Coba lagi.</div>';
+                document.getElementById('fleetModalContent').innerHTML = '<div class="alert alert-danger">Failed to load fleet data. Try again.</div>';
             });
     }
 </script>

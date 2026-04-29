@@ -137,7 +137,7 @@
                     </td>
                 </tr>
                 @empty
-                <tr><td colspan="9" class="text-center text-muted py-5">Tidak ada gudang ditemukan.</td></tr>
+                <tr><td colspan="9" class="text-center text-muted py-5">No warehouses found.</td></tr>
                 @endforelse
             </tbody>
         </table>
@@ -150,19 +150,19 @@
         <button onclick="openPackageModal()" class="btn btn-success btn-sm rounded-pill"><i class="bi bi-plus me-1"></i>Register Package</button>
     </div>
     <div class="table-responsive">
-        <table class="table table-hover align-middle mb-0">
+        <table class="table table-hover align-middle mb-0 text-nowrap">
             <thead class="table-light">
                 <tr>
                     <th class="ps-4">Tracking #</th>
-                    <th>Pengirim</th>
-                    <th>Penerima</th>
-                    <th>Berat Aktual</th>
-                    <th>Berat Efektif</th>
-                    <th>Volume (cm&sup3;)</th>
-                    <th>Kategori</th>
-                    <th>Lokasi Terakhir</th>
+                    <th>Sender</th>
+                    <th>Receiver</th>
+                    <th>Actual Weight</th>
+                    <th>Effective Weight</th>
+                    <th>Dimensions (L&times;W&times;H)</th>
+                    <th>Category</th>
+                    <th>Last Location</th>
                     <th>Status</th>
-                    <th class="pe-4">Aksi</th>
+                    <th class="pe-4">Actions</th>
                 </tr>
             </thead>
             <tbody>
@@ -176,6 +176,12 @@
                     $catColor = $cat==='small'?'info':($cat==='medium'?'success':'danger');
                     $hubId = $package['warehouse']['hub_id'] ?? null;
                     $hubName = $package['warehouse']['hub']['name'] ?? null;
+                    
+                    $st = strtolower($package['status'] ?? 'registered');
+                    $bg = 'secondary';
+                    if ($st === 'pending') $bg = 'danger';
+                    elseif ($st === 'delivered') $bg = 'primary';
+                    elseif ($st === 'shipped' || $st === 'in_transit') $bg = 'success';
                 @endphp
                 <tr>
                     <td class="ps-4 fw-bold text-primary">{{ $package['tracking_number'] }}</td>
@@ -186,21 +192,30 @@
                         <span class="fw-semibold">{{ $effW }} kg</span>
                         <br>
                         @if($isVol)
-                        <span class="badge-volumetric">volumetrik</span>
+                        <span class="badge-volumetric">volumetric</span>
                         @else
-                        <span class="badge-actual">aktual</span>
+                        <span class="badge-actual">actual</span>
                         @endif
                     </td>
-                    <td>{{ number_format($vol, 2) }}</td>
+                    <td>
+                        <span class="fw-semibold">{{ $package['length'] }}&times;{{ $package['width'] }}&times;{{ $package['height'] }} cm</span><br>
+                        <small class="text-muted">{{ number_format($vol, 2) }} cm&sup3;</small>
+                    </td>
                     <td><span class="badge bg-{{ $catColor }}">{{ ucfirst($cat) }}</span></td>
                     <td>
-                        @if($hubName)
+                        @if($st === 'delivered')
+                        <span class="text-primary fw-semibold"><i class="bi bi-house-door-fill me-1"></i>{{ $package['destination'] }}</span>
+                        @elseif($st === 'shipped' || $st === 'in_transit')
+                        <span class="text-success"><i class="bi bi-truck me-1"></i>To {{ $package['destination'] }}</span>
+                        @elseif($hubName)
                         <span class="hub-chip"><i class="bi bi-geo-alt-fill"></i>{{ $hubName }}</span>
                         @else
-                        <span class="text-muted small">-</span>
+                        <span class="text-muted"><i class="bi bi-box me-1"></i>Origin: {{ $package['origin'] }}</span>
                         @endif
                     </td>
-                    <td><span class="badge bg-secondary">{{ ucfirst(str_replace('_',' ',$package['status'] ?? 'registered')) }}</span></td>
+                    <td>
+                        <span class="badge bg-{{ $bg }}">{{ ucfirst(str_replace('_',' ',$st)) }}</span>
+                    </td>
                     <td class="pe-4">
                         <button onclick="editPackage({{ $package['id'] }})" class="btn btn-warning btn-sm me-1"><i class="bi bi-pencil"></i></button>
                         <button onclick="deletePackage({{ $package['id'] }})" class="btn btn-danger btn-sm me-1"><i class="bi bi-trash"></i></button>
@@ -210,7 +225,7 @@
                     </td>
                 </tr>
                 @empty
-                <tr><td colspan="10" class="text-center text-muted py-5">Tidak ada paket ditemukan.</td></tr>
+                <tr><td colspan="10" class="text-center text-muted py-5">No packages found.</td></tr>
                 @endforelse
             </tbody>
         </table>
@@ -278,7 +293,7 @@
                         <div class="col-md-6 mb-3"><label class="form-label">Tracking Number</label><input type="text" class="form-control" id="tracking_number" required></div>
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Warehouse</label>
-                            <select class="form-select" id="warehouse_id" required>
+                            <select class="form-select" id="warehouse_id" required onchange="updateLocation()">
                                 @foreach($warehouses as $wh)
                                 <option value="{{ $wh['id'] }}">{{ $wh['warehouse_code'] }} - {{ $wh['warehouse_name'] }}</option>
                                 @endforeach
@@ -290,44 +305,53 @@
                         <div class="col-md-6 mb-3"><label class="form-label">Receiver Name</label><input type="text" class="form-control" id="receiver_name" required></div>
                     </div>
                     <div class="row">
-                        <div class="col-md-6 mb-3"><label class="form-label">Origin</label><input type="text" class="form-control" id="origin" required></div>
-                        <div class="col-md-6 mb-3"><label class="form-label">Destination</label><input type="text" class="form-control" id="destination" required></div>
+                        <div class="col-md-6 mb-3"><label class="form-label">Origin</label><input type="text" class="form-control" id="origin" required oninput="updateLocation()"></div>
+                        <div class="col-md-6 mb-3"><label class="form-label">Destination</label><input type="text" class="form-control" id="destination" required oninput="updateLocation()"></div>
                     </div>
                     <div class="row">
                         <div class="col-md-6 mb-3"><label class="form-label">Weight (kg)</label><input type="number" class="form-control" id="weight" step="0.01" required oninput="updateVolumetric()"></div>
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Status</label>
-                            <select class="form-select" id="package_status">
+                            <select class="form-select" id="package_status" onchange="updateLocation()">
                                 <option value="registered">Registered</option>
                                 <option value="shipped">Shipped</option>
                                 <option value="delivered">Delivered</option>
                             </select>
                         </div>
                     </div>
-                    <h6 class="border-top pt-3 mt-2 mb-3 fw-semibold">Dimensi Paket</h6>
+                    <h6 class="border-top pt-3 mt-2 mb-3 fw-semibold">Package Dimensions</h6>
                     <div class="row">
-                        <div class="col-md-4 mb-3"><label class="form-label">Panjang (cm)</label><input type="number" class="form-control" id="length" step="0.01" required oninput="updateVolumetric()"></div>
-                        <div class="col-md-4 mb-3"><label class="form-label">Lebar (cm)</label><input type="number" class="form-control" id="width" step="0.01" required oninput="updateVolumetric()"></div>
-                        <div class="col-md-4 mb-3"><label class="form-label">Tinggi (cm)</label><input type="number" class="form-control" id="height" step="0.01" required oninput="updateVolumetric()"></div>
+                        <div class="col-md-4 mb-3"><label class="form-label">Length (cm)</label><input type="number" class="form-control" id="length" step="0.01" required oninput="updateVolumetric()"></div>
+                        <div class="col-md-4 mb-3"><label class="form-label">Width (cm)</label><input type="number" class="form-control" id="width" step="0.01" required oninput="updateVolumetric()"></div>
+                        <div class="col-md-4 mb-3"><label class="form-label">Height (cm)</label><input type="number" class="form-control" id="height" step="0.01" required oninput="updateVolumetric()"></div>
                     </div>
                     <div class="vol-preview" id="volPreview" style="display:none">
-                        <div class="fw-semibold mb-2" style="font-size:.85rem;color:#1e3a8a;"><i class="bi bi-calculator me-1"></i>Kalkulasi Berat Volumetrik</div>
-                        <div class="vol-preview-row"><span class="vol-preview-label">Volume (P&times;L&times;T)</span><span class="vol-preview-value" id="prev_volume">-</span></div>
-                        <div class="vol-preview-row"><span class="vol-preview-label">Berat Volumetrik (&divide;5000)</span><span class="vol-preview-value" id="prev_vol_weight">-</span></div>
-                        <div class="vol-preview-row"><span class="vol-preview-label">Berat Aktual</span><span class="vol-preview-value" id="prev_actual">-</span></div>
+                        <div class="fw-semibold mb-2" style="font-size:.85rem;color:#1e3a8a;"><i class="bi bi-calculator me-1"></i>Volumetric Weight Calculation</div>
+                        <div class="vol-preview-row"><span class="vol-preview-label">Volume (L&times;W&times;H)</span><span class="vol-preview-value" id="prev_volume">-</span></div>
+                        <div class="vol-preview-row"><span class="vol-preview-label">Volumetric Weight (&divide;5000)</span><span class="vol-preview-value" id="prev_vol_weight">-</span></div>
+                        <div class="vol-preview-row"><span class="vol-preview-label">Actual Weight</span><span class="vol-preview-value" id="prev_actual">-</span></div>
                         <hr class="vol-preview-divider">
-                        <div class="vol-preview-row"><span class="vol-preview-label fw-bold" style="color:#1e3a8a">Berat Efektif (digunakan)</span><span class="vol-preview-value text-primary" id="prev_effective">-</span></div>
-                        <div class="vol-preview-row"><span class="vol-preview-label">Dasar perhitungan</span><span id="prev_basis" class="badge-actual">aktual</span></div>
+                        <div class="vol-preview-row"><span class="vol-preview-label fw-bold" style="color:#1e3a8a">Effective Weight (applied)</span><span class="vol-preview-value text-primary" id="prev_effective">-</span></div>
+                        <div class="vol-preview-row"><span class="vol-preview-label">Calculation basis</span><span id="prev_basis" class="badge-actual">actual</span></div>
+                        <hr class="vol-preview-divider">
+                        <div class="vol-preview-row align-items-center"><span class="vol-preview-label fw-bold">Package Category</span><span id="prev_category" class="badge bg-secondary">-</span></div>
+                        <div class="vol-preview-row align-items-center mt-2"><span class="vol-preview-label fw-bold">Last Location Tracker</span><span id="prev_location" class="text-muted">-</span></div>
                     </div>
-                    <div class="mt-3">
-                        <label class="form-label fw-semibold"><i class="bi bi-truck me-1 text-primary"></i>Cek Kapasitas Armada</label>
-                        <div class="d-flex gap-2 align-items-center flex-wrap">
-                            <select class="form-select form-select-sm" id="fleet_check_select" style="max-width:260px" onchange="checkFleetCapacity()">
-                                <option value="">-- Pilih Armada --</option>
-                            </select>
-                            <span id="fleet_fit_badge" style="display:none"></span>
+                    <div class="mt-4 p-3 bg-light rounded border">
+                        <label class="form-label fw-bold text-dark"><i class="bi bi-truck me-2 text-primary"></i>Check Fleet Capacity</label>
+                        <p class="small text-muted mb-2">Select a fleet to simulate if the package's effective weight fits its maximum capacity.</p>
+                        <select class="form-select border-primary" id="fleet_check_select" onchange="checkFleetCapacity()">
+                            <option value="">-- Select Fleet --</option>
+                        </select>
+                        <div id="fleet_fit_result" class="alert mt-3 mb-0" style="display:none; padding: 0.75rem 1rem;">
+                            <div class="d-flex align-items-center">
+                                <div class="fs-1 me-3 lh-1" id="fleet_fit_icon"></div>
+                                <div>
+                                    <div class="fw-bold fs-6" id="fleet_fit_title">...</div>
+                                    <div class="small" id="fleet_fit_desc">...</div>
+                                </div>
+                            </div>
                         </div>
-                        <small class="text-muted">Membandingkan berat efektif paket dengan kapasitas maksimum armada.</small>
                     </div>
                 </div>
                 <div class="modal-footer">

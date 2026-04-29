@@ -16,7 +16,7 @@ class ShipmentRepository implements ShipmentRepositoryInterface
 
     public function getAllShipments($search = null, $status = null)
     {
-        $query = $this->model->with(['originHub', 'destinationHub', 'trackingHistories']);
+        $query = $this->model->with(['customer', 'package', 'fleet', 'originHub', 'destinationHub', 'currentHub', 'trackingHistories']);
 
         if ($search) {
             $query->where('tracking_number', 'like', "%$search%")
@@ -33,20 +33,20 @@ class ShipmentRepository implements ShipmentRepositoryInterface
 
     public function getShipmentById($id)
     {
-        return $this->model->with(['originHub', 'destinationHub', 'trackingHistories'])
+        return $this->model->with(['customer', 'package', 'fleet', 'originHub', 'destinationHub', 'currentHub', 'trackingHistories'])
             ->findOrFail($id);
     }
 
     public function getShipmentByTrackingNumber($trackingNumber)
     {
-        return $this->model->with(['originHub', 'destinationHub', 'trackingHistories'])
+        return $this->model->with(['customer', 'package', 'fleet', 'originHub', 'destinationHub', 'currentHub', 'trackingHistories'])
             ->where('tracking_number', $trackingNumber)
             ->firstOrFail();
     }
 
     public function searchShipment($keyword)
     {
-        return $this->model->with(['originHub', 'destinationHub', 'trackingHistories'])
+        return $this->model->with(['customer', 'package', 'fleet', 'originHub', 'destinationHub', 'currentHub', 'trackingHistories'])
             ->where('tracking_number', 'like', "%$keyword%")
             ->orWhere('sender_name', 'like', "%$keyword%")
             ->orWhere('receiver_name', 'like', "%$keyword%")

@@ -17,28 +17,51 @@ Route::get('/user', function (Request $request) {
 })->middleware('auth:sanctum');
 
 Route::prefix('v1')->group(function (): void {
-    // Modul 2: Tracking System (Core)
-    Route::prefix('tracking')->group(function () {
-        Route::get('/', [TrackingController::class, 'index']); 
-        Route::post('/', [TrackingController::class, 'store']); 
-        Route::get('/search', [TrackingController::class, 'search']); 
-        Route::get('/{tracking_number}', [TrackingController::class, 'show']); 
-        Route::get('/{tracking_number}/history', [TrackingController::class, 'showHistory']); 
-        Route::patch('/{tracking_number}/status', [TrackingController::class, 'updateStatus']);
-    });
-
-    // Modul 3: Authentication
+    // ══════════════════════════════════════════════════════════════════
+    // Modul 3: Authentication (Must be before protected routes)
+    // ══════════════════════════════════════════════════════════════════
     Route::post('/auth/register', [CustomerAuthController::class, 'register']);
     Route::post('/auth/login', [CustomerAuthController::class, 'login']);
 
+    // ══════════════════════════════════════════════════════════════════
+    // Modul 2: Tracking System (Core) - Public Endpoints
+    // ══════════════════════════════════════════════════════════════════
+    Route::prefix('tracking')->group(function () {
+        Route::get('/', [TrackingController::class, 'index']); 
+        Route::get('/search', [TrackingController::class, 'search']); 
+        Route::get('/{tracking_number}', [TrackingController::class, 'show']); 
+        Route::get('/{tracking_number}/history', [TrackingController::class, 'showHistory']); 
+    });
+
+    // ══════════════════════════════════════════════════════════════════
+    // PROTECTED ROUTES: Require auth:sanctum
+    // ══════════════════════════════════════════════════════════════════
     Route::middleware('auth:sanctum')->group(function (): void {
+        
+        // ── Modul 3: Logout & Protected Profile
         Route::post('/auth/logout', [CustomerAuthController::class, 'logout']);
         Route::get('/customer/shipping-profile', [ShippingProfileController::class, 'show']);
         Route::put('/customer/shipping-profile', [ShippingProfileController::class, 'upsert']);
         Route::post('/customer/shipping-cost/calculate', [ShippingCalculatorController::class, 'calculate']);
+
+        // ── Modul 2: Tracking - Protected Endpoints (M3 integration)
+        // Create shipment from package (M1 integration)
+        Route::post('/shipment/from-package/{package_id}', [TrackingController::class, 'createFromPackage']);
+        
+        // Create shipment manually (M3: customer owned)
+        Route::post('/tracking', [TrackingController::class, 'store']);
+        
+        // Get customer's shipments (M3: private, only own shipments)
+        Route::get('/customer/shipments', [TrackingController::class, 'customerShipments']);
+        Route::get('/customer/shipments/{tracking_number}', [TrackingController::class, 'customerShipmentDetail']);
+        
+        // Update tracking status (M4: fleet movement)
+        Route::patch('/tracking/{tracking_number}/status', [TrackingController::class, 'updateStatus']);
     });
 
+    // ══════════════════════════════════════════════════════════════════
     // Modul 1: Warehouse Management
+    // ══════════════════════════════════════════════════════════════════
     Route::prefix('warehouse')->group(function () {
         Route::get('/', [WarehouseController::class, 'index']);
         Route::post('/', [WarehouseController::class, 'store']);
@@ -56,7 +79,9 @@ Route::prefix('v1')->group(function (): void {
         Route::get('/{id}/dimension', [PackageController::class, 'getDimension']);
     });
 
+    // ══════════════════════════════════════════════════════════════════
     // Modul 4: Fleet Management & Hub Monitoring
+    // ══════════════════════════════════════════════════════════════════
     Route::prefix('fleet')->group(function () {
         Route::get('/', [FleetController::class, 'index']);
         Route::post('/', [FleetController::class, 'store']);

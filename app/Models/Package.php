@@ -40,6 +40,14 @@ class Package extends Model
         return $this->belongsTo(Warehouse::class);
     }
 
+    /**
+     * M2 Integration: Shipment for this package (one-to-one)
+     */
+    public function shipment()
+    {
+        return $this->hasOne(Shipment::class, 'package_id');
+    }
+
     public function getDimensionCategory()
     {
         if ($this->volume <= 1000) {

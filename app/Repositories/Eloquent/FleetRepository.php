@@ -16,11 +16,19 @@ class FleetRepository implements FleetRepositoryInterface
 {
     private const FLEET_PAGINATION_SIZE = 15;
 
-    public function getAllFleets($search = null)
+    public function getAllFleets($search = null, $status = null, $hubId = null)
     {
         $query = Fleet::with('currentHub')->latest();
 
         $this->applyFleetSearch($query, $search);
+
+        if ($status) {
+            $query->where('status', $status);
+        }
+
+        if ($hubId) {
+            $query->where('current_hub_id', $hubId);
+        }
 
         return $query->paginate(self::FLEET_PAGINATION_SIZE)->withQueryString();
     }

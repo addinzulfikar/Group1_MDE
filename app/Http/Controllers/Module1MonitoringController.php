@@ -64,7 +64,6 @@ class Module1MonitoringController extends Controller
 
                 return [
                     'id' => $warehouse->id,
-                    'warehouse_code' => $warehouse->warehouse_code,
                     'warehouse_name' => $warehouse->warehouse_name,
                     'location' => $warehouse->location,
                     'hub_id' => $warehouse->hub_id,
@@ -100,7 +99,7 @@ class Module1MonitoringController extends Controller
                 'all_hubs' => $hubs,
 
                 // Chart data (for future enhancement)
-                'warehouse_codes' => $warehouseUsage->pluck('warehouse_code')->toArray(),
+                'warehouse_names' => $warehouseUsage->pluck('warehouse_name')->toArray(),
                 'warehouse_loads' => $warehouseUsage->pluck('current_load')->toArray(),
             ];
 
@@ -119,7 +118,7 @@ class Module1MonitoringController extends Controller
                 'warehouses' => collect(),
                 'packages' => collect(),
                 'all_hubs' => collect(),
-                'warehouse_codes' => [],
+                'warehouse_names' => [],
                 'warehouse_loads' => [],
             ]);
         }

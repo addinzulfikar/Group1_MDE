@@ -113,10 +113,21 @@
     function openPackageModal() {
         document.getElementById('packageId').value = '';
         document.getElementById('packageForm').reset();
+        
         document.getElementById('packageModalTitle').textContent = 'Register Package';
         document.getElementById('packageSubmitBtn').textContent = 'Register';
         document.getElementById('volPreview').style.display = 'none';
-        document.getElementById('fleet_fit_badge').style.display = 'none';
+        
+        const resultBox = document.getElementById('fleet_fit_result');
+        if (resultBox) resultBox.style.display = 'none';
+        
+        const catEl = document.getElementById('prev_category');
+        if (catEl) {
+            catEl.className = 'badge bg-secondary';
+            catEl.textContent = '-';
+        }
+        
+        updateLocation();
         
         loadFleetOptions(); // Load fleets for dropdown
         packageModal.show();
@@ -182,7 +193,18 @@
                     alert('Error: ' + response.data.message);
                 }
             })
-            .catch(error => alert('Error saving package'));
+            .catch(error => {
+                if (error.response && error.response.data) {
+                    let msg = error.response.data.message;
+                    if (error.response.data.errors) {
+                        const errs = Object.values(error.response.data.errors).flat();
+                        msg += '\n- ' + errs.join('\n- ');
+                    }
+                    alert('Error: ' + msg);
+                } else {
+                    alert('Error saving package');
+                }
+            });
     }
 
     function deletePackage(id) {
@@ -247,7 +269,18 @@
 
     let fleetsCache = [];
     function loadFleetOptions() {
-        axios.get(`${API_URL}/fleet`)
+        const warehouseSelect = document.getElementById('warehouse_id');
+        let hubId = '';
+        if (warehouseSelect && warehouseSelect.selectedIndex >= 0 && warehouseSelect.value) {
+            hubId = warehouseSelect.options[warehouseSelect.selectedIndex].getAttribute('data-hub-id') || '';
+        }
+
+        let url = `${API_URL}/fleet?status=idle`;
+        if (hubId) {
+            url += `&hub_id=${hubId}`;
+        }
+
+        axios.get(url)
             .then(response => {
                 if (response.data && response.data.data) {
                     if (Array.isArray(response.data.data)) {

@@ -18,8 +18,7 @@ class WarehouseRepository implements WarehouseRepositoryInterface
         if (isset($filters['search'])) {
             $search = $filters['search'];
             $query->where(function ($q) use ($search) {
-                $q->where('warehouse_code', 'like', "%{$search}%")
-                  ->orWhere('warehouse_name', 'like', "%{$search}%")
+                $q->where('warehouse_name', 'like', "%{$search}%")
                   ->orWhere('location', 'like', "%{$search}%");
             });
         }

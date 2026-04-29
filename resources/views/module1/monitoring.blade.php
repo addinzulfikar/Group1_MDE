@@ -56,7 +56,7 @@
                 <span class="pill-info pill-sky">Total Kapasitas</span>
             </div>
             <div class="h4 fw-bold mb-0">{{ number_format($total_capacity) }}</div>
-            <small class="text-muted">unit</small>
+            <small class="text-muted">kg</small>
         </div>
     </div>
 </div>
@@ -293,9 +293,10 @@
                         <div class="col-md-6 mb-3"><label class="form-label">Tracking Number</label><input type="text" class="form-control" id="tracking_number" required></div>
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Warehouse</label>
-                            <select class="form-select" id="warehouse_id" required onchange="updateLocation()">
+                            <select class="form-select" id="warehouse_id" required onchange="updateLocation(); loadFleetOptions();">
+                                <option value="">-- Select Warehouse --</option>
                                 @foreach($warehouses as $wh)
-                                <option value="{{ $wh['id'] }}">{{ $wh['warehouse_code'] }} - {{ $wh['warehouse_name'] }}</option>
+                                <option value="{{ $wh['id'] }}" data-hub-id="{{ $wh['hub_id'] }}">{{ $wh['warehouse_name'] }}</option>
                                 @endforeach
                             </select>
                         </div>

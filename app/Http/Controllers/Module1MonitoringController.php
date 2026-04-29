@@ -25,7 +25,7 @@ class Module1MonitoringController extends Controller
 
             // Calculate warehouse statistics
             $totalWarehouses = $warehouses->count();
-            $activeWarehouses = $warehouses->where('status', 'active')->count();
+            $activeWarehouses = $warehouses->where('status', 'available')->count();
             $totalCapacity = $warehouses->sum('capacity');
             $totalCurrentLoad = $warehouses->sum('current_load');
 
@@ -80,8 +80,8 @@ class Module1MonitoringController extends Controller
                 // Warehouse Statistics
                 'total_warehouses' => $totalWarehouses,
                 'active_warehouses' => $activeWarehouses,
-                'total_capacity' => number_format($totalCapacity, 0),
-                'total_current_load' => number_format($totalCurrentLoad, 0),
+                'total_capacity' => $totalCapacity,
+                'total_current_load' => $totalCurrentLoad,
                 'overall_usage_percentage' => $totalCapacity > 0 
                     ? round(($totalCurrentLoad / $totalCapacity) * 100, 2) 
                     : 0,
@@ -107,8 +107,8 @@ class Module1MonitoringController extends Controller
                 'error' => 'Failed to load monitoring data: ' . $e->getMessage(),
                 'total_warehouses' => 0,
                 'active_warehouses' => 0,
-                'total_capacity' => '0',
-                'total_current_load' => '0',
+                'total_capacity' => 0,
+                'total_current_load' => 0,
                 'overall_usage_percentage' => 0,
                 'total_packages' => 0,
                 'packages_by_status' => collect(),

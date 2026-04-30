@@ -43,6 +43,9 @@ class Module1MonitoringController extends Controller
                     'origin' => $package->origin,
                     'destination' => $package->destination,
                     'weight' => $package->weight,
+                    'length' => $package->length,
+                    'width' => $package->width,
+                    'height' => $package->height,
                     'volume' => $package->volume,
                     'dimension_category' => $package->getDimensionCategory(),
                     'warehouse_name' => $package->warehouse->warehouse_name ?? 'Unknown',
@@ -61,7 +64,6 @@ class Module1MonitoringController extends Controller
 
                 return [
                     'id' => $warehouse->id,
-                    'warehouse_code' => $warehouse->warehouse_code,
                     'warehouse_name' => $warehouse->warehouse_name,
                     'location' => $warehouse->location,
                     'hub_id' => $warehouse->hub_id,
@@ -80,8 +82,8 @@ class Module1MonitoringController extends Controller
                 // Warehouse Statistics
                 'total_warehouses' => $totalWarehouses,
                 'active_warehouses' => $activeWarehouses,
-                'total_capacity' => number_format($totalCapacity, 0),
-                'total_current_load' => number_format($totalCurrentLoad, 0),
+                'total_capacity' => $totalCapacity,
+                'total_current_load' => $totalCurrentLoad,
                 'overall_usage_percentage' => $totalCapacity > 0 
                     ? round(($totalCurrentLoad / $totalCapacity) * 100, 2) 
                     : 0,
@@ -97,7 +99,7 @@ class Module1MonitoringController extends Controller
                 'all_hubs' => $hubs,
 
                 // Chart data (for future enhancement)
-                'warehouse_codes' => $warehouseUsage->pluck('warehouse_code')->toArray(),
+                'warehouse_names' => $warehouseUsage->pluck('warehouse_name')->toArray(),
                 'warehouse_loads' => $warehouseUsage->pluck('current_load')->toArray(),
             ];
 
@@ -107,8 +109,8 @@ class Module1MonitoringController extends Controller
                 'error' => 'Failed to load monitoring data: ' . $e->getMessage(),
                 'total_warehouses' => 0,
                 'active_warehouses' => 0,
-                'total_capacity' => '0',
-                'total_current_load' => '0',
+                'total_capacity' => 0,
+                'total_current_load' => 0,
                 'overall_usage_percentage' => 0,
                 'total_packages' => 0,
                 'packages_by_status' => collect(),
@@ -116,7 +118,7 @@ class Module1MonitoringController extends Controller
                 'warehouses' => collect(),
                 'packages' => collect(),
                 'all_hubs' => collect(),
-                'warehouse_codes' => [],
+                'warehouse_names' => [],
                 'warehouse_loads' => [],
             ]);
         }

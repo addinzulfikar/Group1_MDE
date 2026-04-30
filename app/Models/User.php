@@ -46,4 +46,12 @@ class User extends Authenticatable
             'password' => 'hashed',
         ];
     }
+
+    /**
+     * M2 Integration: Shipments for this customer
+     */
+    public function shipments()
+    {
+        return $this->hasMany(Shipment::class, 'customer_id');
+    }
 }

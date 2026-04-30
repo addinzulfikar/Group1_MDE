@@ -105,6 +105,7 @@ class TrackingWebController extends Controller
 
     /**
      * API search (untuk autocomplete)
+     * Search di shipment tracking_number atau di package sender/receiver data
      */
     public function apiSearch(Request $request)
     {
@@ -114,14 +115,28 @@ class TrackingWebController extends Controller
             return response()->json([]);
         }
 
+        // Search in shipments (tracking) atau packages (sender_name, receiver_name)
         $results = \App\Models\Shipment::where('tracking_number', 'like', "%$q%")
-            ->orWhere('sender_name', 'like', "%$q%")
-            ->orWhere('receiver_name', 'like', "%$q%")
-            ->orWhere('sender_phone', 'like', "%$q%")
+            ->orWhereHas('package', function ($query) use ($q) {
+                $query->where('sender_name', 'like', "%$q%")
+                      ->orWhere('receiver_name', 'like', "%$q%")
+                      ->orWhere('origin', 'like', "%$q%")
+                      ->orWhere('destination', 'like', "%$q%");
+            })
+            ->with('package')
             ->limit(10)
-            ->select('id', 'tracking_number', 'sender_name', 'receiver_name', 'status')
+            ->select('id', 'tracking_number', 'package_id', 'status')
             ->get();
 
-        return response()->json($results);
+        // Format response untuk autocomplete
+        return response()->json($results->map(function ($shipment) {
+            return [
+                'id' => $shipment->id,
+                'tracking_number' => $shipment->tracking_number,
+                'sender_name' => $shipment->package?->sender_name ?? '-',
+                'receiver_name' => $shipment->package?->receiver_name ?? '-',
+                'status' => $shipment->status
+            ];
+        }));
     }
 }

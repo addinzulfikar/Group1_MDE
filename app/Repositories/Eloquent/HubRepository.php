@@ -24,15 +24,17 @@ class HubRepository implements HubRepositoryInterface
         $hubIds = $hubs->pluck('id')->all();
 
         $warehouseLoads = Warehouse::query()
-            ->selectRaw('hub_id, SUM(current_load) as total_load')
+            ->selectRaw('hub_id, SUM(current_load) as total_load, SUM(capacity) as total_capacity')
             ->whereIn('hub_id', $hubIds)
             ->groupBy('hub_id')
-            ->pluck('total_load', 'hub_id');
+            ->get()
+            ->keyBy('hub_id');
 
         return $hubs->map(function (Hub $hub) use ($warehouseLoads) {
-            $warehouseLoad = (int) ($warehouseLoads[$hub->id] ?? 0);
+            $warehouseData = $warehouseLoads[$hub->id] ?? null;
 
-            $hub->current_load = $warehouseLoad;
+            $hub->current_load = $warehouseData ? (int) $warehouseData->total_load : 0;
+            $hub->capacity = $warehouseData ? (int) $warehouseData->total_capacity : 0;
 
             return $hub;
         });
@@ -42,11 +44,15 @@ class HubRepository implements HubRepositoryInterface
     {
         $hub = Hub::findOrFail($hubId);
 
-        $warehouseLoad = (int) Warehouse::query()
+        $warehouseTotals = Warehouse::query()
             ->where('hub_id', $hubId)
-            ->sum('current_load');
+            ->selectRaw('SUM(current_load) as current_load, SUM(capacity) as capacity')
+            ->first();
         
-        $percentage = ($hub->capacity > 0) ? ($warehouseLoad / $hub->capacity) * 100 : 0;
+        $warehouseLoad = (int) ($warehouseTotals->current_load ?? 0);
+        $warehouseCapacity = (int) ($warehouseTotals->capacity ?? 0);
+        
+        $percentage = ($warehouseCapacity > 0) ? ($warehouseLoad / $warehouseCapacity) * 100 : 0;
         
         // Return structured data for "monitoring kapasitas gudang"
         $status = 'available';

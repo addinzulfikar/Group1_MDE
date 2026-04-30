@@ -135,6 +135,7 @@
                                 <tr>
                                     <th class="ps-4">Armada</th>
                                     <th>Tipe</th>
+                                    <th>Kapasitas</th>
                                     <th>Status</th>
                                     <th>Lokasi Hub</th>
                                     <th class="pe-4">Aksi</th>
@@ -153,6 +154,7 @@
                                             </div>
                                         </td>
                                         <td><span class="text-capitalize text-muted fw-semibold">{{ $fleet->type }}</span></td>
+                                        <td><span class="text-muted fw-semibold">{{ number_format($fleet->capacity) }} Kg/M³</span></td>
                                         <td>
                                             <select
                                                 class="form-select form-select-sm fleet-status-select"

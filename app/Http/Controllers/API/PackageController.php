@@ -23,7 +23,10 @@ class PackageController extends Controller
             $packages = $packages->map(function ($package) {
                 return [
                     ...$package->toArray(),
-                    'dimension_category' => $package->getDimensionCategory()
+                    'dimension_category'  => $package->getDimensionCategory(),
+                    'volumetric_weight'   => $this->calcVolumetricWeight($package),
+                    'effective_weight'    => $this->calcEffectiveWeight($package),
+                    'weight_basis'        => $this->calcEffectiveWeight($package) > $package->weight ? 'volumetric' : 'actual',
                 ];
             });
 
@@ -79,6 +82,9 @@ class PackageController extends Controller
             }
             
             $packageData['dimension_category'] = $package->getDimensionCategory();
+            $packageData['volumetric_weight']  = $this->calcVolumetricWeight($package);
+            $packageData['effective_weight']   = $this->calcEffectiveWeight($package);
+            $packageData['weight_basis']       = $this->calcEffectiveWeight($package) > $package->weight ? 'volumetric' : 'actual';
 
             return response()->json([
                 'success' => true,
@@ -115,6 +121,9 @@ class PackageController extends Controller
             }
 
             $packageData['dimension_category'] = $package->getDimensionCategory();
+            $packageData['volumetric_weight']  = $this->calcVolumetricWeight($package);
+            $packageData['effective_weight']   = $this->calcEffectiveWeight($package);
+            $packageData['weight_basis']       = $this->calcEffectiveWeight($package) > $package->weight ? 'volumetric' : 'actual';
 
             return response()->json([
                 'success' => true,
@@ -199,6 +208,9 @@ class PackageController extends Controller
             }
             
             $packageData['dimension_category'] = $package->getDimensionCategory();
+            $packageData['volumetric_weight']  = $this->calcVolumetricWeight($package);
+            $packageData['effective_weight']   = $this->calcEffectiveWeight($package);
+            $packageData['weight_basis']       = $this->calcEffectiveWeight($package) > $package->weight ? 'volumetric' : 'actual';
 
             return response()->json([
                 'success' => true,
@@ -314,11 +326,36 @@ class PackageController extends Controller
     private function getCategoryDescription($category)
     {
         $descriptions = [
-            'small' => 'Volume ≤ 1000 cm³',
+            'small'  => 'Volume ≤ 1000 cm³',
             'medium' => 'Volume 1000 - 5000 cm³',
-            'large' => 'Volume > 5000 cm³'
+            'large'  => 'Volume > 5000 cm³'
         ];
 
         return $descriptions[$category] ?? 'Unknown category';
+    }
+
+    /**
+     * Hitung berat volumetrik paket.
+     * Formula standar industri: (P × L × T) / 5000  → satuan kg
+     */
+    private function calcVolumetricWeight(Package $package): float
+    {
+        $l = (float) ($package->length ?? 0);
+        $w = (float) ($package->width  ?? 0);
+        $h = (float) ($package->height ?? 0);
+
+        return round(($l * $w * $h) / 5000, 2);
+    }
+
+    /**
+     * Berat efektif = max(berat_asli, berat_volumetrik).
+     * Inilah berat yang dipakai untuk cek muat kapasitas kendaraan.
+     */
+    private function calcEffectiveWeight(Package $package): float
+    {
+        $actual     = (float) ($package->weight ?? 0);
+        $volumetric = $this->calcVolumetricWeight($package);
+
+        return max($actual, $volumetric);
     }
 }

@@ -20,8 +20,16 @@ class ShipmentRepository implements ShipmentRepositoryInterface
 
         if ($search) {
             $query->where('tracking_number', 'like', "%$search%")
-                ->orWhere('sender_name', 'like', "%$search%")
-                ->orWhere('receiver_name', 'like', "%$search%");
+                ->orWhereHas('package', function ($q) use ($search) {
+                    $q->where('sender_name', 'like', "%$search%")
+                      ->orWhere('receiver_name', 'like', "%$search%")
+                      ->orWhere('origin', 'like', "%$search%")
+                      ->orWhere('destination', 'like', "%$search%");
+                })
+                ->orWhereHas('customer', function ($q) use ($search) {
+                    $q->where('name', 'like', "%$search%")
+                      ->orWhere('email', 'like', "%$search%");
+                });
         }
 
         if ($status) {
@@ -48,10 +56,16 @@ class ShipmentRepository implements ShipmentRepositoryInterface
     {
         return $this->model->with(['customer', 'package', 'fleet', 'originHub', 'destinationHub', 'currentHub', 'trackingHistories'])
             ->where('tracking_number', 'like', "%$keyword%")
-            ->orWhere('sender_name', 'like', "%$keyword%")
-            ->orWhere('receiver_name', 'like', "%$keyword%")
-            ->orWhere('sender_phone', 'like', "%$keyword%")
-            ->orWhere('receiver_phone', 'like', "%$keyword%")
+            ->orWhereHas('package', function ($q) use ($keyword) {
+                $q->where('sender_name', 'like', "%$keyword%")
+                  ->orWhere('receiver_name', 'like', "%$keyword%")
+                  ->orWhere('origin', 'like', "%$keyword%")
+                  ->orWhere('destination', 'like', "%$keyword%");
+            })
+            ->orWhereHas('customer', function ($q) use ($keyword) {
+                $q->where('name', 'like', "%$keyword%")
+                  ->orWhere('email', 'like', "%$keyword%");
+            })
             ->orderByDesc('created_at')
             ->paginate(15);
     }

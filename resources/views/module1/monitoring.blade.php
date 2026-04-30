@@ -220,8 +220,9 @@
                         <button onclick="editPackage({{ $package['id'] }})" class="btn btn-warning btn-sm me-1"><i class="bi bi-pencil"></i></button>
                         <button onclick="deletePackage({{ $package['id'] }})" class="btn btn-danger btn-sm me-1"><i class="bi bi-trash"></i></button>
                         @if($hubId)
-                        <button onclick="openFleetModal({{ $hubId }},'{{ addslashes($hubName) }}')" class="btn btn-primary btn-sm rounded-pill"><i class="bi bi-radar me-1"></i>Track</button>
+                        <button onclick="openFleetModal({{ $hubId }},'{{ addslashes($hubName) }}')" class="btn btn-primary btn-sm rounded-pill me-1"><i class="bi bi-radar me-1"></i>Track</button>
                         @endif
+                        <button onclick="openCreateShipmentModal({{ $package['id'] }}, '{{ addslashes($package['tracking_number']) }}')" class="btn btn-success btn-sm rounded-pill"><i class="bi bi-box-arrow-right me-1"></i>Shipment</button>
                     </td>
                 </tr>
                 @empty
@@ -384,5 +385,61 @@
         </div>
     </div>
 </div>
+{{-- CREATE_SHIPMENT_MODAL --}}
+<div class="modal fade" id="createShipmentModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header modal-header-blue">
+                <h5 class="modal-title"><i class="bi bi-truck me-2"></i>Create Shipment from Package</h5>
+                <button type="button" class="btn-close" onclick="closeCreateShipmentModal()"></button>
+            </div>
+            <form id="createShipmentForm" onsubmit="submitCreateShipment(event)">
+                <div class="modal-body">
+                    <div class="alert alert-info mb-3">
+                        <i class="bi bi-info-circle me-2"></i>
+                        <strong>Info:</strong> Create a new shipment from this package. The destination hub must be different from the origin hub.
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Package Tracking #</label>
+                        <input type="text" class="form-control" id="shipment_package_tracking" disabled>
+                        <input type="hidden" id="shipment_package_id">
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold">Origin Hub (Auto-detected)</label>
+                            <input type="text" class="form-control" id="shipment_origin_hub" disabled>
+                            <small class="text-muted">From warehouse location</small>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold">Destination Hub <span class="text-danger">*</span></label>
+                            <select class="form-select" id="shipment_destination_hub" required onchange="validateDestinationHub()">
+                                <option value="">-- Select Destination Hub --</option>
+                            </select>
+                            <small class="text-muted">Must be different from origin</small>
+                            <div id="hub_error_msg" class="invalid-feedback d-block mt-2" style="display:none; color:#dc3545;"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="progress-box p-3 bg-light rounded mb-3" id="shipment_info_box" style="display:none;">
+                        <div class="d-flex align-items-center mb-2">
+                            <i class="bi bi-check-circle-fill text-success me-2 fs-5"></i>
+                            <span class="fw-semibold">Ready to Create Shipment</span>
+                        </div>
+                        <small class="text-muted">All validations passed. Click "Create Shipment" to proceed.</small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeCreateShipmentModal()">Cancel</button>
+                    <button type="submit" class="btn btn-success" id="shipment_submit_btn">
+                        <i class="bi bi-plus-circle me-1"></i>Create Shipment
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 @endsection
 @include('module1.partials.scripts')
+@include('module1.partials.shipment-script')

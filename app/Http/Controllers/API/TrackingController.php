@@ -273,6 +273,45 @@ class TrackingController extends Controller
      */
 
     /**
+     * Get available destination hubs for a package
+     * GET /api/v1/package/{package_id}/available-destination-hubs
+     * 
+     * Returns all hubs except the origin hub of the package
+     */
+    public function availableDestinationHubs($packageId)
+    {
+        try {
+            $package = \App\Models\Package::with('warehouse.hub')->findOrFail($packageId);
+            
+            $originHubId = $package->warehouse?->hub_id;
+            if (!$originHubId) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Paket tidak ada di warehouse yang valid'
+                ], 422);
+            }
+            
+            $originHub = \App\Models\Hub::find($originHubId);
+            $availableHubs = \App\Models\Hub::where('id', '!=', $originHubId)
+                ->orderBy('name')
+                ->get(['id', 'name', 'location_lat', 'location_long']);
+            
+            return response()->json([
+                'status' => 'success',
+                'data' => [
+                    'origin_hub' => $originHub,
+                    'available_destination_hubs' => $availableHubs
+                ]
+            ], 200);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Paket tidak ditemukan'
+            ], 404);
+        }
+    }
+
+    /**
      * Create shipment from package (M1 integration)
      * POST /api/v1/shipment/from-package/{package_id}
      * 
@@ -303,15 +342,25 @@ class TrackingController extends Controller
             if (!$originHubId) {
                 return response()->json([
                     'status' => 'error',
-                    'message' => 'Paket tidak ada di warehouse yang valid'
+                    'message' => 'Paket tidak ada di warehouse yang valid. Mohon pastikan paket sudah diassign ke warehouse dengan hub yang aktif.',
+                    'code' => 'NO_WAREHOUSE_HUB'
                 ], 422);
             }
             
-            // Validate destination is different
+            $originHub = \App\Models\Hub::find($originHubId);
+            $destinationHub = \App\Models\Hub::find($validated['destination_hub_id']);
+            
+            // Validate destination is different from origin
             if ($originHubId == $validated['destination_hub_id']) {
                 return response()->json([
                     'status' => 'error',
-                    'message' => 'Hub tujuan harus berbeda dari hub asal'
+                    'message' => "Hub tujuan '{$destinationHub->name}' tidak boleh sama dengan hub asal '{$originHub->name}'. Pilih hub tujuan yang berbeda.",
+                    'code' => 'SAME_HUB_ERROR',
+                    'origin_hub' => [
+                        'id' => $originHubId,
+                        'name' => $originHub->name
+                    ],
+                    'available_destination_hubs' => \App\Models\Hub::where('id', '!=', $originHubId)->get(['id', 'name'])
                 ], 422);
             }
             

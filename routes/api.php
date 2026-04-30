@@ -77,6 +77,8 @@ Route::prefix('v1')->group(function (): void {
         Route::put('/{id}', [PackageController::class, 'update']);
         Route::delete('/{id}', [PackageController::class, 'destroy']);
         Route::get('/{id}/dimension', [PackageController::class, 'getDimension']);
+        // Get available destination hubs for creating shipment from package
+        Route::get('/{id}/available-destination-hubs', [TrackingController::class, 'availableDestinationHubs']);
     });
 
     // ══════════════════════════════════════════════════════════════════

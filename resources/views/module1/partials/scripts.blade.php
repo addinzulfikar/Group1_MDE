@@ -5,6 +5,7 @@
     const warehouseModal = new bootstrap.Modal(document.getElementById('warehouseModal'));
     const packageModal = new bootstrap.Modal(document.getElementById('packageModal'));
     const fleetTrackModal = new bootstrap.Modal(document.getElementById('fleetTrackModal'));
+    const createShipmentModal = new bootstrap.Modal(document.getElementById('createShipmentModal'));
 
     // --- Warehouse Functions ---
     function openWarehouseModal() {

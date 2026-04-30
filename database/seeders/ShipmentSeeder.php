@@ -18,20 +18,43 @@ class ShipmentSeeder extends Seeder
         // Disable foreign key checks for faster insertion
         DB::statement('SET FOREIGN_KEY_CHECKS=0;');
 
-        // Get hub IDs (should be 50 from previous seeder)
+        // Get hub IDs and package IDs (M1) and customer IDs (M3)
         $hubIds = DB::table('hubs')->pluck('id')->toArray();
+        $packageIds = DB::table('packages')->pluck('id')->toArray();
+        $customerIds = DB::table('users')->pluck('id')->toArray();
         
-        if (empty($hubIds)) {
-            $this->command->error('No hubs found! Please run hub seeding first.');
+        // Create test users if none exist
+        if (empty($customerIds)) {
+            $this->command->info('No customers found, creating test users...');
+            $hashedPassword = \Hash::make('password');
+            $usersBatch = [];
+            for ($i = 0; $i < 100; $i++) {
+                $usersBatch[] = [
+                    'name' => "Test User $i",
+                    'email' => "test$i@example.com",
+                    'password' => $hashedPassword,
+                    'phone' => '081234567' . str_pad($i, 3, '0', STR_PAD_LEFT),
+                    'address' => "Jl. Test Street $i",
+                    'is_customer' => true,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ];
+            }
+            DB::table('users')->insert($usersBatch);
+            $customerIds = DB::table('users')->pluck('id')->toArray();
+            $this->command->info('Created ' . count($customerIds) . ' test users');
+        }
+        
+        if (empty($hubIds) || empty($packageIds) || empty($customerIds)) {
+            $this->command->error('Missing required data: Hubs, Packages, or Customers. Run their seeders first.');
             return;
         }
 
         $faker = Factory::create('id_ID');
         $batchSize = 500;
         $shipmentBatch = [];
-        $trackingHistoryBatch = [];
 
-        $this->command->info('Creating 25,000 shipments and tracking histories...');
+        $this->command->info('Creating 25,000 shipments...');
         
         for ($i = 1; $i <= 25000; $i++) {
             $originId = $hubIds[array_rand($hubIds)];
@@ -51,18 +74,13 @@ class ShipmentSeeder extends Seeder
 
             $shipmentBatch[] = [
                 'tracking_number' => $trackingNumber,
-                'sender_name' => $faker->name(),
-                'sender_phone' => $faker->phoneNumber(),
-                'sender_address' => $faker->address(),
-                'receiver_name' => $faker->name(),
-                'receiver_phone' => $faker->phoneNumber(),
-                'receiver_address' => $faker->address(),
-                'weight' => $faker->randomFloat(2, 0.5, 50),
-                'length' => $faker->numberBetween(5, 200),
-                'width' => $faker->numberBetween(5, 200),
-                'height' => $faker->numberBetween(5, 200),
+                'customer_id' => $customerIds[array_rand($customerIds)],      // M3: required
+                'package_id' => $packageIds[array_rand($packageIds)],          // M1: required (Option B)
+                // Data (sender_name, receiver_name, weight, dimensions) fetched from package relationship
                 'origin_hub_id' => $originId,
                 'destination_hub_id' => $destinationId,
+                'current_hub_id' => $originId,
+                'fleet_id' => DB::table('fleets')->inRandomOrder()->first()?->id ?? null,  // M4: optional
                 'status' => $status,
                 'sent_at' => $sentAt,
                 'delivered_at' => $deliveredAt,
